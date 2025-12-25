@@ -1,0 +1,106 @@
+package kafn
+
+import (
+	"fmt"
+	"math"
+	"sync"
+
+	tabulatedfunction "github.com/Maxime2/tabulated-function"
+)
+
+// Layer is a set of neurons and corresponding activation
+type Layer struct {
+	Number  int
+	S       SynapseType
+	Neurons []*Neuron
+}
+
+// NewLayer creates a new layer with n nodes
+func NewLayer(l, n int, synapse SynapseType) *Layer {
+	//func NewLayer(c *Config, l int) *Layer {
+	//	n := c.Layout[l]
+	//	activation := c.Activation[l]
+	//	synapse := c.Synapse[l]
+
+	neurons := make([]*Neuron, n)
+
+	for i := 0; i < n; i++ {
+		neurons[i] = NewNeuron()
+	}
+	return &Layer{
+		Number:  l,
+		Neurons: neurons,
+		S:       synapse,
+	}
+}
+
+func (l *Layer) Fire() {
+	var wg sync.WaitGroup
+	for _, neuron := range l.Neurons {
+		wg.Add(1)
+		go func(n *Neuron) {
+			defer wg.Done()
+			n.fire()
+		}(neuron)
+	}
+	wg.Wait()
+
+}
+
+func (l *Layer) FireT(trapolation tabulatedfunction.Trapolation) {
+	var wg sync.WaitGroup
+	for _, neuron := range l.Neurons {
+		wg.Add(1)
+		go func(n *Neuron) {
+			defer wg.Done()
+			n.fireT(trapolation)
+		}(neuron)
+	}
+	wg.Wait()
+
+}
+
+// CreateInputSynapses create input synapses for the bottom layer
+func (l *Layer) CreateInputSynapses(c *Config) {
+	//domain_min, domain_max := GetActivation(l.A).Domain()
+	//A := float64(2*(domain_max-domain_min)) / float64(c.Inputs) / float64(c.Inputs) / float64(len(l.Neurons)) / float64(c.Degree+1)
+	wA := Deepfloat64(0) //Deepfloat64(domain_min)
+	//wi := GetWeightFunction(c.Weight, A/20, A)
+	//wEps := Deepfloat64(A / 50 / float64(c.Inputs))
+	for _, neuron := range l.Neurons {
+		neuron.In = make([]Synapse, c.Inputs)
+		//f := Fibonacci()
+		for i := range neuron.In {
+			A := math.Pow(float64(i+1) /*float64(f())*/, 0.5)
+			neuron.In[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, Deepfloat64(A)}, c.InputTags[i])
+			neuron.In[i].SetWeight(0, wA)
+			neuron.In[i].SetWeight(1, Deepfloat64(A) /*wA*/)
+			wA += Deepfloat64(A + Eps) // neuron.In[i].GetWeight(1) + wEps
+		}
+	}
+}
+
+// Connect fully connects layer l to next, and initializes each
+// synapse with the given weight function
+// func (l *Layer) Connect(next *Layer, degree int, weight WeightType) {
+func (l *Layer) Connect(next *Layer, c *Config) {
+	for j, neuron := range next.Neurons {
+		for i := range l.Neurons {
+			syn := NewSynapseTabulated(c, neuron, fmt.Sprintf("L:%d N:%d", l.Number, i))
+			l.Neurons[i].Out = append(l.Neurons[i].Out, syn)
+			next.Neurons[j].In = append(next.Neurons[j].In, syn)
+		}
+	}
+}
+
+func (l Layer) NumIns() (num int) {
+	for _, neuron := range l.Neurons {
+		num += len(neuron.In)
+	}
+	return
+}
+
+func (l Layer) String() string {
+	// The original implementation `return fmt.Sprintf("%+v", l)` causes infinite recursion.
+	return fmt.Sprintf("Layer(Number: %d, SynapseType: %v, Neurons: %d)", l.Number, l.S, len(l.Neurons))
+}

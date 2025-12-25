@@ -1,0 +1,100 @@
+package kafn
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/theothertomelliott/acyclic"
+)
+
+func Test_Init(t *testing.T) {
+	n := NewNeural(&Config{
+		Inputs:  3,
+		Outputs: 2,
+	})
+
+	assert.Len(t, n.Layers, 2)
+
+}
+
+func Test_Forward(t *testing.T) {
+	c := Config{
+		Degree:  1,
+		Inputs:  3,
+		Outputs: 3,
+	}
+	n := NewNeural(&c)
+
+	err := n.Forward([]Deepfloat64{0.1, 0.2, 0.7})
+	assert.Nil(t, err)
+
+	expected := []float64{
+		3.5, 3.5, 3.5,
+	}
+
+	fmt.Printf("%v", n.Check())
+
+	for j, n := range n.Layers[1].Neurons {
+		assert.InEpsilon(t, expected[j], float64(n.Sum), 1e-12)
+	}
+
+	err = n.Forward([]Deepfloat64{0.1, 0.2})
+	assert.Error(t, err)
+}
+
+func Test_Save_Load(t *testing.T) {
+	c := Config{
+		Degree:  1,
+		Inputs:  3,
+		Outputs: 3,
+	}
+	n := NewNeural(&c)
+
+	tmpfile, err := ioutil.TempFile("", "test_load_save")
+	assert.Nil(t, err)
+	defer os.Remove(tmpfile.Name()) // clean up
+
+	t.Log("Doing SaveReadable")
+	err = n.SaveReadable(tmpfile.Name())
+	assert.Nil(t, err)
+
+	t.Log("Doing Save")
+	err = n.Save(tmpfile.Name())
+	assert.Nil(t, err)
+
+	t.Log("Doing Load")
+	n2, err := Load(tmpfile.Name())
+	assert.Nil(t, err)
+
+	err = acyclic.Check(n)
+	if err != nil {
+		t.Errorf("n has a cycle")
+	}
+	err = acyclic.Check(n2)
+	if err != nil {
+		t.Errorf("n2 has a cycle")
+	}
+
+	//	t.Log("Doing Compare")
+	//	if diff := pretty.Compare(n, n2); diff != "" {
+	//		t.Errorf("n and n2 diff: (-got +want)\n%s", diff)
+	//	}
+	t.Log("Doing test.dot")
+	n.Dot("test.dot")
+	t.Log("Doing test2.dot")
+	n.Dot("test2.dot")
+	output, err := exec.Command("diff", "test.dot", "test2.dot").Output()
+	assert.Nil(t, err)
+	if string(output) != "" {
+		t.Errorf("n and n2 diff: (-got +want)\n%s", output)
+	}
+}
+
+func Test_NumWeights(t *testing.T) {
+	n := NewNeural(&Config{Inputs: 5, Outputs: 3, Degree: 1})
+	assert.Equal(t, 2*5*(2*5+1)+3*(2*5+1), n.NumWeights())
+}
