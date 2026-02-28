@@ -35,10 +35,10 @@ func (n *Neuron) calculateAndFire(refireSynapses bool) {
 		}
 	}
 
-	if n.Sum.Cmp(n.MinSum) < 0 {
+	if n.Sum < n.MinSum {
 		n.MinSum = n.Sum
 	}
-	if n.Sum.Cmp(n.MaxSum) > 0 {
+	if n.Sum > n.MaxSum {
 		n.MaxSum = n.Sum
 	}
 
@@ -65,10 +65,10 @@ func (n *Neuron) fireT(trapolation tabulatedfunction.Trapolation) {
 		}
 	}
 
-	if n.Sum.Cmp(n.MinSum) < 0 {
+	if n.Sum < n.MinSum {
 		n.MinSum = n.Sum
 	}
-	if n.Sum.Cmp(n.MaxSum) > 0 {
+	if n.Sum > n.MaxSum {
 		n.MaxSum = n.Sum
 	}
 

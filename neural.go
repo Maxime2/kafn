@@ -277,7 +277,7 @@ func (n *Neural) Check() string {
 			if t <= y {
 				continue
 			}
-			if neuron.MinSum.Cmp(p.MinSum) > 0 && neuron.MinSum.Cmp(p.MaxSum) < 0 {
+			if neuron.MinSum > p.MinSum && neuron.MinSum < p.MaxSum {
 				report += fmt.Sprintf("Check %d vs %d: [%v:%v] vs [%v:%v]\n",
 					y, t, neuron.MinSum, neuron.MaxSum, p.MinSum, p.MaxSum)
 			}

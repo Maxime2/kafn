@@ -66,7 +66,7 @@ func (l CrossEntropy) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
 	for i := range estimate {
 		ce := DF(0)
 		for j := range estimate[i] {
-			ce = Add(ce, Mul(ideal[i][j], DF(math.Log(Float64(estimate[i][j])))))
+			ce = Add(ce, Mul(ideal[i][j], DF(math.Log(estimate[i][j]))))
 		}
 
 		sum = Sub(sum, ce)
@@ -96,8 +96,8 @@ func (l BinaryCrossEntropy) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
 		ce := DF(0)
 		for j := range estimate[i] {
 			// ce += ideal * log(est+eps) + (1-ideal)*log(1-est+eps)
-			term1 := Mul(ideal[i][j], DF(math.Log(Float64(estimate[i][j])+epsilon)))
-			term2 := Mul(Sub(DF(1), ideal[i][j]), DF(math.Log(1.0-Float64(estimate[i][j])+epsilon)))
+			term1 := Mul(ideal[i][j], DF(math.Log(estimate[i][j]+epsilon)))
+			term2 := Mul(Sub(DF(1), ideal[i][j]), DF(math.Log(1.0-estimate[i][j]+epsilon)))
 			ce = Add(ce, Add(term1, term2))
 		}
 		sum = Sub(sum, ce)

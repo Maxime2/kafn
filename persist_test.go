@@ -22,7 +22,7 @@ func Test_RestoreFromDump(t *testing.T) {
 	pred2 := new.Predict([]Deepfloat64{DF(0)})
 	assert.Len(t, pred1, len(pred2))
 	for i := range pred1 {
-		assert.True(t, pred1[i].Cmp(pred2[i]) == 0)
+		assert.True(t, pred1[i] == pred2[i])
 	}
 }
 
@@ -45,6 +45,6 @@ func Test_Marshal(t *testing.T) {
 	pred2 := new.Predict([]Deepfloat64{DF(0)})
 	assert.Len(t, pred1, len(pred2))
 	for i := range pred1 {
-		assert.True(t, pred1[i].Cmp(pred2[i]) == 0)
+		assert.True(t, pred1[i] == pred2[i])
 	}
 }

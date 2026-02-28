@@ -113,7 +113,7 @@ func (s *SynapseTabulated) SetWeight(k int, weight Deepfloat64) {
 }
 
 func (s *SynapseTabulated) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return Mul(D_E_x, DF(math.Pow(Float64(s.In), float64(k))))
+	return Mul(D_E_x, DF(math.Pow(s.In, float64(k))))
 }
 
 func (s *SynapseTabulated) GetWeight(k int) Deepfloat64 {
@@ -151,7 +151,7 @@ func (s *SynapseTabulated) GetUp() *Neuron {
 
 func (s *SynapseTabulated) AddPoint(x, y Deepfloat64, it uint32) {
 	valY := y
-	if valY.Sign() < 0 {
+	if valY < 0 {
 		valY = DF(0)
 	}
 	s.direct.AddPoint(x, valY, it)
@@ -259,7 +259,7 @@ func (s *SynapseAnalytic) SetWeight(k int, weight Deepfloat64) {
 }
 
 func (s *SynapseAnalytic) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return Mul(D_E_x, DF(math.Pow(Float64(s.In), float64(k))))
+	return Mul(D_E_x, DF(math.Pow(s.In, float64(k))))
 }
 
 func (s *SynapseAnalytic) GetWeight(k int) Deepfloat64 {

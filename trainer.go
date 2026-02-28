@@ -140,7 +140,7 @@ func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) {
 					if numIn > 0 {
 						gap = Div(Sub(s.GetUp().Ideal, s.GetUp().Sum), DF(float64(numIn)))
 					}
-					if s.Len() > 1 && s.GetWeight(1).Sign() != 0 {
+					if s.Len() > 1 && s.GetWeight(1) != 0 {
 						term := Div(Sub(gap, s.GetWeight(0)), s.GetWeight(1))
 						n_ideal = Add(n_ideal, Add(s.GetIn(), term))
 					}

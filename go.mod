@@ -1,14 +1,12 @@
 module github.com/Maxime2/kafn
 
-go 1.23.0
-
-toolchain go1.23.12
+go 1.25.0
 
 require (
-	github.com/Maxime2/tabulated-function v0.0.0-20250712043122-ee88323adc01
+	github.com/Maxime2/tabulated-function v0.0.0-20260228024844-d4f2e3a2c201
 	github.com/stretchr/testify v1.8.4
 	github.com/theothertomelliott/acyclic v0.0.1
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.19.0
 )
 
 require (
