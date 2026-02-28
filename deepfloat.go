@@ -1,20 +1,42 @@
 package kafn
 
 import (
-	"strconv"
+	"math"
+	"math/big"
+
+	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
 
-type Deepfloat64 float64
+type Deepfloat64 = *big.Float
 
-func (f Deepfloat64) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + strconv.FormatFloat(float64(f), 'e', -1, 64) + `"`), nil
+func DF(f float64) Deepfloat64 {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return big.NewFloat(0).SetPrec(tabulatedfunction.Precision)
+	}
+	return big.NewFloat(f).SetPrec(tabulatedfunction.Precision)
 }
 
-func (fs *Deepfloat64) UnmarshalJSON(b []byte) error {
-	if b[0] == '"' {
-		b = b[1 : len(b)-1]
-	}
-	f, err := strconv.ParseFloat(string(b), 64)
-	*fs = Deepfloat64(f)
-	return err
+func Add(a, b Deepfloat64) Deepfloat64 {
+	return new(big.Float).Add(a, b)
+}
+
+func Sub(a, b Deepfloat64) Deepfloat64 {
+	return new(big.Float).Sub(a, b)
+}
+
+func Mul(a, b Deepfloat64) Deepfloat64 {
+	return new(big.Float).Mul(a, b)
+}
+
+func Div(a, b Deepfloat64) Deepfloat64 {
+	return new(big.Float).Quo(a, b)
+}
+
+func Copy(a Deepfloat64) Deepfloat64 {
+	return new(big.Float).Copy(a)
+}
+
+func Float64(a Deepfloat64) float64 {
+	f, _ := a.Float64()
+	return f
 }

@@ -60,12 +60,12 @@ func NewSynapseTabulated(c *Config, up *Neuron, tag string) *SynapseTabulated {
 	direct.SetTrapolation(c.Trapolation)
 	syn := &SynapseTabulated{
 		direct: direct,
-		In:     0,
-		Out:    0,
+		In:     DF(0),
+		Out:    DF(0),
 		Tag:    tag,
 		Up:     up,
 	}
-	syn.direct.LoadConstant(0.5, 0, 1)
+	syn.direct.LoadConstant(DF(0.5), DF(0), DF(1))
 	return syn
 }
 
@@ -79,11 +79,11 @@ func (s *SynapseTabulated) WeightsString() string {
 }
 
 func (s *SynapseTabulated) Refire() {
-	s.Out = Deepfloat64(s.direct.F(float64(s.In)))
+	s.Out = Copy(s.direct.F(s.In))
 }
 
 func (s *SynapseTabulated) RefireT(trapolation tabulatedfunction.Trapolation) {
-	s.Out = Deepfloat64(s.direct.Trapolate(float64(s.In), trapolation))
+	s.Out = Copy(s.direct.Trapolate(s.In, trapolation))
 }
 
 func (s *SynapseTabulated) Fire(value Deepfloat64) {
@@ -97,7 +97,7 @@ func (s *SynapseTabulated) FireT(value Deepfloat64, trapolation tabulatedfunctio
 }
 
 func (s *SynapseTabulated) FireDerivative() Deepfloat64 {
-	return Deepfloat64(0)
+	return DF(0)
 }
 
 func (s *SynapseTabulated) SetTag(tag string) {
@@ -113,11 +113,11 @@ func (s *SynapseTabulated) SetWeight(k int, weight Deepfloat64) {
 }
 
 func (s *SynapseTabulated) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return D_E_x * Deepfloat64(math.Pow(float64(s.In), float64(k)))
+	return Mul(D_E_x, DF(math.Pow(Float64(s.In), float64(k))))
 }
 
 func (s *SynapseTabulated) GetWeight(k int) Deepfloat64 {
-	return Deepfloat64(math.NaN())
+	return DF(math.NaN())
 }
 
 func (s *SynapseTabulated) Epoch(epoch uint32) {
@@ -150,17 +150,21 @@ func (s *SynapseTabulated) GetUp() *Neuron {
 }
 
 func (s *SynapseTabulated) AddPoint(x, y Deepfloat64, it uint32) {
-	s.direct.AddPoint(float64(x), math.Max(0, float64(y)), it)
+	valY := y
+	if valY.Sign() < 0 {
+		valY = DF(0)
+	}
+	s.direct.AddPoint(x, valY, it)
 	s.changed = true
 }
 
 func (s *SynapseTabulated) Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64 {
-	return Deepfloat64(s.direct.Trapolate(float64(x), trapolation))
+	return Copy(s.direct.Trapolate(x, trapolation))
 }
 
 // GetPoint() returns n-th point in Tabulated activation
 func (s *SynapseTabulated) GetPoint(i int) (Deepfloat64, Deepfloat64) {
-	return Deepfloat64(s.direct.P[i].X), Deepfloat64(s.direct.P[i].Y)
+	return s.direct.P[i].X, s.direct.P[i].Y
 }
 
 func (s *SynapseTabulated) DrawPS(path string) {
@@ -198,8 +202,8 @@ func NewSynapseAnalytic(up *Neuron, degree int, init_weights []Deepfloat64, tag 
 	}
 	return &SynapseAnalytic{
 		Weights: weights,
-		In:      0,
-		Out:     0,
+		In:      DF(0),
+		Out:     DF(0),
 		Tag:     tag,
 		Up:      up,
 	}
@@ -215,11 +219,11 @@ func (s *SynapseAnalytic) WeightsString() string {
 }
 
 func (s *SynapseAnalytic) Refire() {
-	mul := Deepfloat64(1)
-	s.Out = 0
+	mul := DF(1)
+	s.Out = DF(0)
 	for k := 0; k < len(s.Weights); k++ {
-		s.Out += s.Weights[k] * mul
-		mul *= s.In
+		s.Out = Add(s.Out, Mul(s.Weights[k], mul))
+		mul = Mul(mul, s.In)
 	}
 }
 
@@ -234,11 +238,11 @@ func (s *SynapseAnalytic) FireT(value Deepfloat64, trapolation tabulatedfunction
 }
 
 func (s *SynapseAnalytic) FireDerivative() Deepfloat64 {
-	mul := Deepfloat64(1)
-	var res Deepfloat64
+	mul := DF(1)
+	res := DF(0)
 	for k := 1; k < len(s.Weights); k++ {
-		res += Deepfloat64(k) * mul * s.Weights[k]
-		mul *= s.In
+		res = Add(res, Mul(DF(float64(k)), Mul(mul, s.Weights[k])))
+		mul = Mul(mul, s.In)
 	}
 	return res
 }
@@ -255,7 +259,7 @@ func (s *SynapseAnalytic) SetWeight(k int, weight Deepfloat64) {
 }
 
 func (s *SynapseAnalytic) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return D_E_x * Deepfloat64(math.Pow(float64(s.In), float64(k)))
+	return Mul(D_E_x, DF(math.Pow(Float64(s.In), float64(k))))
 }
 
 func (s *SynapseAnalytic) GetWeight(k int) Deepfloat64 {
@@ -293,11 +297,11 @@ func (s *SynapseAnalytic) Clear() {}
 func (s *SynapseAnalytic) AddPoint(x, y Deepfloat64, it uint32) {}
 
 func (s *SynapseAnalytic) Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64 {
-	return Deepfloat64(math.NaN())
+	return DF(math.NaN())
 }
 
 // GetPoint() returns (0,0,1)
-func (s *SynapseAnalytic) GetPoint(i int) (Deepfloat64, Deepfloat64) { return 0, 0 }
+func (s *SynapseAnalytic) GetPoint(i int) (Deepfloat64, Deepfloat64) { return DF(0), DF(0) }
 
 func (s *SynapseAnalytic) DrawPS(path string) {}
 

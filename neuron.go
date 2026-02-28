@@ -18,27 +18,27 @@ type Neuron struct {
 // NewNeuron returns a neuron with the given activation
 func NewNeuron() *Neuron {
 	return &Neuron{
-		MinSum: Deepfloat64(math.MaxFloat64),  // Correct for finding a minimum
-		MaxSum: -Deepfloat64(math.MaxFloat64), // Correct for finding a maximum
+		MinSum: DF(math.MaxFloat64),  // Correct for finding a minimum
+		MaxSum: DF(-math.MaxFloat64), // Correct for finding a maximum
 	}
 }
 
 func (n *Neuron) calculateAndFire(refireSynapses bool) {
-	n.Sum = 0
+	n.Sum = DF(0)
 	for _, s := range n.In {
 		if refireSynapses {
 			s.Refire()
 		}
-		preliminarySum := n.Sum + s.GetOut()
-		if !math.IsNaN(float64(preliminarySum)) {
+		preliminarySum := Add(n.Sum, s.GetOut())
+		if !math.IsNaN(Float64(preliminarySum)) {
 			n.Sum = preliminarySum
 		}
 	}
 
-	if n.Sum < n.MinSum {
+	if n.Sum.Cmp(n.MinSum) < 0 {
 		n.MinSum = n.Sum
 	}
-	if n.Sum > n.MaxSum {
+	if n.Sum.Cmp(n.MaxSum) > 0 {
 		n.MaxSum = n.Sum
 	}
 
@@ -57,18 +57,18 @@ func (n *Neuron) refire() {
 }
 
 func (n *Neuron) fireT(trapolation tabulatedfunction.Trapolation) {
-	n.Sum = 0
+	n.Sum = DF(0)
 	for _, s := range n.In {
-		preliminarySum := n.Sum + s.GetOut()
-		if !math.IsNaN(float64(preliminarySum)) {
+		preliminarySum := Add(n.Sum, s.GetOut())
+		if !math.IsNaN(Float64(preliminarySum)) {
 			n.Sum = preliminarySum
 		}
 	}
 
-	if n.Sum < n.MinSum {
+	if n.Sum.Cmp(n.MinSum) < 0 {
 		n.MinSum = n.Sum
 	}
-	if n.Sum > n.MaxSum {
+	if n.Sum.Cmp(n.MaxSum) > 0 {
 		n.MaxSum = n.Sum
 	}
 

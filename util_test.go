@@ -7,25 +7,25 @@ import (
 )
 
 func Test_ArgMax(t *testing.T) {
-	s := []Deepfloat64{5.0, 10.0, 0.0}
+	s := []Deepfloat64{DF(5.0), DF(10.0), DF(0.0)}
 	assert.Equal(t, 1, ArgMax(s))
 }
 
 func Test_Sum(t *testing.T) {
-	s := []Deepfloat64{5.0, 10.0, 0.0}
-	assert.Equal(t, Deepfloat64(15.0), Sum(s))
+	s := []Deepfloat64{DF(5.0), DF(10.0), DF(0.0)}
+	assert.True(t, DF(15.0).Cmp(Sum(s)) == 0)
 
 	s2 := []Deepfloat64{}
-	assert.Equal(t, Deepfloat64(0.0), Sum(s2))
+	assert.True(t, DF(0.0).Cmp(Sum(s2)) == 0)
 }
 
 func Test_Round(t *testing.T) {
-	assert.Equal(t, Deepfloat64(1.0), Round(1.4))
-	assert.Equal(t, Deepfloat64(2.0), Round(1.5))
-	assert.Equal(t, Deepfloat64(2.0), Round(1.6))
-	assert.Equal(t, Deepfloat64(-1.0), Round(-1.4))
-	assert.Equal(t, Deepfloat64(-1.0), Round(-1.5))
-	assert.Equal(t, Deepfloat64(-2.0), Round(-1.6))
+	assert.True(t, DF(1.0).Cmp(Round(DF(1.4))) == 0)
+	assert.True(t, DF(2.0).Cmp(Round(DF(1.5))) == 0)
+	assert.True(t, DF(2.0).Cmp(Round(DF(1.6))) == 0)
+	assert.True(t, DF(-1.0).Cmp(Round(DF(-1.4))) == 0)
+	assert.True(t, DF(-1.0).Cmp(Round(DF(-1.5))) == 0)
+	assert.True(t, DF(-2.0).Cmp(Round(DF(-1.6))) == 0)
 }
 
 func Test_Fibonacci(t *testing.T) {

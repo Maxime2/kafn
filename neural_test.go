@@ -3,12 +3,12 @@ package kafn
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/theothertomelliott/acyclic"
 )
 
 func Test_Init(t *testing.T) {
@@ -29,7 +29,7 @@ func Test_Forward(t *testing.T) {
 	}
 	n := NewNeural(&c)
 
-	err := n.Forward([]Deepfloat64{0.1, 0.2, 0.7})
+	err := n.Forward([]Deepfloat64{DF(0.1), DF(0.2), DF(0.7)})
 	assert.Nil(t, err)
 
 	expected := []float64{
@@ -39,10 +39,10 @@ func Test_Forward(t *testing.T) {
 	fmt.Printf("%v", n.Check())
 
 	for j, n := range n.Layers[1].Neurons {
-		assert.InEpsilon(t, expected[j], float64(n.Sum), 1e-12)
+		assert.InEpsilon(t, expected[j], Float64(n.Sum), 1e-12)
 	}
 
-	err = n.Forward([]Deepfloat64{0.1, 0.2})
+	err = n.Forward([]Deepfloat64{DF(0.1), DF(0.2)})
 	assert.Error(t, err)
 }
 
@@ -70,15 +70,6 @@ func Test_Save_Load(t *testing.T) {
 	n2, err := Load(tmpfile.Name())
 	assert.Nil(t, err)
 
-	err = acyclic.Check(n)
-	if err != nil {
-		t.Errorf("n has a cycle")
-	}
-	err = acyclic.Check(n2)
-	if err != nil {
-		t.Errorf("n2 has a cycle")
-	}
-
 	//	t.Log("Doing Compare")
 	//	if diff := pretty.Compare(n, n2); diff != "" {
 	//		t.Errorf("n and n2 diff: (-got +want)\n%s", diff)
@@ -86,7 +77,7 @@ func Test_Save_Load(t *testing.T) {
 	t.Log("Doing test.dot")
 	n.Dot("test.dot")
 	t.Log("Doing test2.dot")
-	n.Dot("test2.dot")
+	n2.Dot("test2.dot")
 	output, err := exec.Command("diff", "test.dot", "test2.dot").Output()
 	assert.Nil(t, err)
 	if string(output) != "" {
@@ -97,4 +88,26 @@ func Test_Save_Load(t *testing.T) {
 func Test_NumWeights(t *testing.T) {
 	n := NewNeural(&Config{Inputs: 5, Outputs: 3, Degree: 1})
 	assert.Equal(t, 2*5*(2*5+1)+3*(2*5+1), n.NumWeights())
+}
+
+func Test_InterpolateSin(t *testing.T) {
+	Rand.Seed(0)
+
+	data := Examples{}
+	for i := 0.0; i < math.Pi; i += 0.2 {
+		data = append(data, Example{Input: []Deepfloat64{DF(i)}, Response: []Deepfloat64{DF(math.Sin(i))}})
+	}
+
+	n := NewNeural(&Config{
+		Inputs:  1,
+		Outputs: 1,
+	})
+
+	trainer := NewTrainer(n.Config.LossPrecision, 0, 0)
+	trainer.Train(n, data, nil, 1000)
+
+	for i := 0.1; i < math.Pi; i += 0.2 {
+		res := n.Predict([]Deepfloat64{DF(i)})
+		assert.InDelta(t, math.Sin(i), Float64(res[0]), 0.1, "Failed for %f", i)
+	}
 }

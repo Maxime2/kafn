@@ -6,7 +6,7 @@ import "math"
 func ArgMax(xx []Deepfloat64) int {
 	max, idx := xx[0], 0
 	for i, x := range xx {
-		if x > max {
+		if x.Cmp(max) > 0 {
 			max, idx = xx[i], i
 		}
 	}
@@ -15,15 +15,16 @@ func ArgMax(xx []Deepfloat64) int {
 
 // Sum is sum
 func Sum(xx []Deepfloat64) (sum Deepfloat64) {
+	sum = DF(0)
 	for _, x := range xx {
-		sum += x
+		sum = Add(sum, x)
 	}
 	return
 }
 
 // Round to nearest integer
 func Round(x Deepfloat64) Deepfloat64 {
-	return Deepfloat64(math.Floor(float64(x) + .5))
+	return DF(math.Floor(Float64(x) + .5))
 }
 
 // fibonacci returns a function that returns

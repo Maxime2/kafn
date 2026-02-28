@@ -16,27 +16,27 @@ func Test_Loss(t *testing.T) {
 	}{
 		{
 			loss:   LossMeanSquared,
-			input:  [][]Deepfloat64{{0.5, 1.0, 1.5}},
-			target: [][]Deepfloat64{{0.0, 2.0, 2.0}},
+			input:  [][]Deepfloat64{{DF(0.5), DF(1.0), DF(1.5)}},
+			target: [][]Deepfloat64{{DF(0.0), DF(2.0), DF(2.0)}},
 			res:    0.5,
 		},
 		{
 			loss:   LossCrossEntropy,
-			input:  [][]Deepfloat64{{0.5, 1.0, 1.5}},
-			target: [][]Deepfloat64{{0.0, 1.0, 1.0}},
+			input:  [][]Deepfloat64{{DF(0.5), DF(1.0), DF(1.5)}},
+			target: [][]Deepfloat64{{DF(0.0), DF(1.0), DF(1.0)}},
 			res:    -0.4,
 		},
 		{
 			loss:   LossBinaryCrossEntropy,
-			input:  [][]Deepfloat64{{0.5}},
-			target: [][]Deepfloat64{{0.5}},
+			input:  [][]Deepfloat64{{DF(0.5)}},
+			target: [][]Deepfloat64{{DF(0.5)}},
 			res:    0.69,
 		},
 	}
 	for _, test := range tests {
 		loss := GetLoss(test.loss)
 		estimate := loss.Cf(test.input, test.target)
-		assert.InEpsilon(t, float64(test.res), float64(estimate), 1e-1, fmt.Sprintf("%s estimate: %.2f expected: %.2f", test.loss.String(), estimate, test.res))
+		assert.InEpsilon(t, test.res, Float64(estimate), 1e-1, fmt.Sprintf("%s estimate: %.2f expected: %.2f", test.loss.String(), Float64(estimate), test.res))
 		assert.NotEqual(t, "N/A", test.loss.String())
 	}
 }

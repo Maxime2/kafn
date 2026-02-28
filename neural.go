@@ -210,9 +210,9 @@ func (n *Neural) String() string {
 }
 
 func TotalError(E []Deepfloat64) Deepfloat64 {
-	var r Deepfloat64
+	r := DF(0)
 	for _, x := range E {
-		r += x
+		r = Add(r, x)
 	}
 	return r
 }
@@ -277,8 +277,8 @@ func (n *Neural) Check() string {
 			if t <= y {
 				continue
 			}
-			if neuron.MinSum > p.MinSum && neuron.MinSum < p.MaxSum {
-				report += fmt.Sprintf("Check %d vs %d: [%f:%f] vs [%f:%f]\n",
+			if neuron.MinSum.Cmp(p.MinSum) > 0 && neuron.MinSum.Cmp(p.MaxSum) < 0 {
+				report += fmt.Sprintf("Check %d vs %d: [%v:%v] vs [%v:%v]\n",
 					y, t, neuron.MinSum, neuron.MaxSum, p.MinSum, p.MaxSum)
 			}
 		}

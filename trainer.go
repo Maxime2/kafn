@@ -83,7 +83,7 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 		n.Config.Epoch++
 		for i := range t.E {
 			for j := range t.E[i] {
-				t.E[i][j] = 0
+				t.E[i][j] = DF(0)
 			}
 		}
 		for j := 0; j < len(examples); j++ {
@@ -91,7 +91,7 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 		}
 		for e := range t.E {
 			for j := range t.E[e] {
-				t.E[e][j] /= Deepfloat64(len(examples))
+				t.E[e][j] = Div(t.E[e][j], DF(float64(len(examples))))
 			}
 		}
 		if t.verbosity > 0 && i%uint32(t.verbosity) == 0 && len(validation) > 0 {
@@ -118,7 +118,7 @@ func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, neuron *Neuron, i int) {
 			defer t.sem.Release(1)
-			t.E[len(n.Layers)-1][i] += loss.F(neuron.Sum, ideal[i])
+			t.E[len(n.Layers)-1][i] = Add(t.E[len(n.Layers)-1][i], loss.F(neuron.Sum, ideal[i]))
 			neuron.Ideal = ideal[i]
 
 			wg.Done()
@@ -132,21 +132,22 @@ func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) {
 			wg.Add(1)
 			go func(wg *sync.WaitGroup, neuron *Neuron, i, j int) {
 				defer t.sem.Release(1)
-				var n_ideal Deepfloat64
+				n_ideal := DF(0)
 				for _, s := range neuron.Out {
 
-					var gap Deepfloat64
+					gap := DF(0)
 					numIn := len(s.GetUp().In)
 					if numIn > 0 {
-						gap = (s.GetUp().Ideal - s.GetUp().Sum) / Deepfloat64(numIn)
+						gap = Div(Sub(s.GetUp().Ideal, s.GetUp().Sum), DF(float64(numIn)))
 					}
-					if s.Len() > 1 && s.GetWeight(1) != 0 {
-						n_ideal += s.GetIn() + (gap-s.GetWeight(0))/s.GetWeight(1)
+					if s.Len() > 1 && s.GetWeight(1).Sign() != 0 {
+						term := Div(Sub(gap, s.GetWeight(0)), s.GetWeight(1))
+						n_ideal = Add(n_ideal, Add(s.GetIn(), term))
 					}
 
 				}
-				n_ideal = n_ideal / Deepfloat64(len(neuron.Out))
-				t.E[i][j] += loss.F(neuron.Sum, n_ideal)
+				n_ideal = Div(n_ideal, DF(float64(len(neuron.Out))))
+				t.E[i][j] = Add(t.E[i][j], loss.F(neuron.Sum, n_ideal))
 				neuron.Ideal = n_ideal
 
 				wg.Done()
@@ -184,12 +185,12 @@ func (t *OnlineTrainer) update(neural *Neural, it uint32) {
 			go func(wg *sync.WaitGroup, n *Neuron, i, j int, l *Layer) {
 				defer t.sem.Release(1)
 
-				gap := (n.Ideal - n.Sum) / Deepfloat64(len(n.In)+1)
+				gap := Div(Sub(n.Ideal, n.Sum), DF(float64(len(n.In)+1)))
 
 				for _, synapse := range n.In {
 					switch l.S {
 					case SynapseTypeTabulated:
-						synapse.AddPoint(synapse.GetIn(), synapse.GetOut()+gap, neural.Config.Epoch)
+						synapse.AddPoint(synapse.GetIn(), Add(synapse.GetOut(), gap), neural.Config.Epoch)
 					case SynapseTypeAnalytic:
 					}
 				}
