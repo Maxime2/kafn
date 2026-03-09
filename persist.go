@@ -7,12 +7,22 @@ import (
 	"fmt"
 	"os"
 
+	tabulatedfunction "github.com/Maxime2/tabulated-function"
+
 	"github.com/theothertomelliott/acyclic"
 )
 
 // Point is a point in Tabulated activation
 type Point struct {
 	X, Y Deepfloat64
+}
+
+func init() {
+	// Register concrete types for interfaces that will be encoded with gob.
+	// The `Trapolation` field in the `Config` struct is an interface, and this
+	// ensures that gob knows how to serialize/deserialize its concrete implementations.
+	// If other types can be assigned to `Trapolation`, they must be registered too.
+	gob.Register(tabulatedfunction.TrapolationLinear)
 }
 
 // Dump is a neural network dump
