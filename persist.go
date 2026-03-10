@@ -169,18 +169,13 @@ func (n *Neural) Save(path string) error {
 		}
 	}
 
-	var p Point
-
 	// Store Tabulated Synapses
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, n := range l.Neurons {
 				for _, s := range n.In {
-					npoints := s.Len()
-					enc.Encode(npoints)
-					for i := 0; i < npoints; i++ {
-						p.X, p.Y = s.GetPoint(i)
-						enc.Encode(p)
+					if tab, ok := s.(*SynapseTabulated); ok {
+						enc.Encode(tab.Dump())
 					}
 				}
 			}
@@ -206,36 +201,39 @@ func Load(path string) (*Neural, error) {
 	dec := gob.NewDecoder(r)
 
 	// Restore config
-	dec.Decode(&config)
+	if err := dec.Decode(&config); err != nil {
+		return nil, err
+	}
 
 	n := NewNeural(&config)
 
+	// Restore Weights for Analytic Synapses
 	// Restore Weights
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
 			for _, n := range l.Neurons {
 				for _, in := range n.In {
 					var w []Deepfloat64
-					dec.Decode(&w)
+					if err := dec.Decode(&w); err != nil {
+						return nil, err
+					}
 					in.SetWeights(w)
 				}
 			}
 		}
 	}
 
-	var p Point
-	var npoints int
-
-	// Store Tabulated Synapses
+	// Restore Tabulated Synapses
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, n := range l.Neurons {
 				for _, s := range n.In {
-					dec.Decode(&npoints)
-					s.Clear()
-					for i := 0; i < npoints; i++ {
-						dec.Decode(&p)
-						s.AddPoint(p.X, p.Y, config.Epoch)
+					if tab, ok := s.(*SynapseTabulated); ok {
+						var dump tabulatedfunction.Dump
+						if err := dec.Decode(&dump); err != nil {
+							return nil, err
+						}
+						tab.FromDump(&dump)
 					}
 				}
 			}

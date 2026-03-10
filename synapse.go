@@ -65,7 +65,7 @@ func NewSynapseTabulated(c *Config, up *Neuron, tag string) *SynapseTabulated {
 		Tag:    tag,
 		Up:     up,
 	}
-	syn.direct.LoadConstant(DF(0.5), DF(0), DF(1))
+	syn.direct.LoadConstant(0.5, 0.0, 1.0)
 	return syn
 }
 
@@ -79,11 +79,11 @@ func (s *SynapseTabulated) WeightsString() string {
 }
 
 func (s *SynapseTabulated) Refire() {
-	s.Out = Copy(s.direct.F(s.In))
+	s.Out = DF(s.direct.F(float64(s.In)))
 }
 
 func (s *SynapseTabulated) RefireT(trapolation tabulatedfunction.Trapolation) {
-	s.Out = Copy(s.direct.Trapolate(s.In, trapolation))
+	s.Out = DF(s.direct.Trapolate(float64(s.In), trapolation))
 }
 
 func (s *SynapseTabulated) Fire(value Deepfloat64) {
@@ -113,7 +113,7 @@ func (s *SynapseTabulated) SetWeight(k int, weight Deepfloat64) {
 }
 
 func (s *SynapseTabulated) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return Mul(D_E_x, DF(math.Pow(s.In, float64(k))))
+	return Mul(D_E_x, DF(math.Pow(float64(s.In), float64(k))))
 }
 
 func (s *SynapseTabulated) GetWeight(k int) Deepfloat64 {
@@ -154,17 +154,17 @@ func (s *SynapseTabulated) AddPoint(x, y Deepfloat64, it uint32) {
 	if valY < 0 {
 		valY = DF(0)
 	}
-	s.direct.AddPoint(x, valY, it)
+	s.direct.AddPoint(float64(x), float64(valY), it)
 	s.changed = true
 }
 
 func (s *SynapseTabulated) Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64 {
-	return Copy(s.direct.Trapolate(x, trapolation))
+	return DF(s.direct.Trapolate(float64(x), trapolation))
 }
 
 // GetPoint() returns n-th point in Tabulated activation
 func (s *SynapseTabulated) GetPoint(i int) (Deepfloat64, Deepfloat64) {
-	return s.direct.P[i].X, s.direct.P[i].Y
+	return DF(s.direct.P[i].X), DF(s.direct.P[i].Y)
 }
 
 func (s *SynapseTabulated) DrawPS(path string) {
@@ -175,12 +175,22 @@ func (s *SynapseTabulated) Smooth() {
 	s.direct.Smooth()
 }
 
+// Dump returns a serializable dump of the underlying tabulated function.
+func (s *SynapseTabulated) Dump() *tabulatedfunction.Dump {
+	return s.direct.Dump()
+}
+
+// FromDump restores the underlying tabulated function from a dump.
+func (s *SynapseTabulated) FromDump(d *tabulatedfunction.Dump) {
+	s.direct.FromDump(d)
+}
+
 func (s *SynapseTabulated) Polinate(m Synapse) {
-	for i := range m.Len() {
+	for i := 0; i < m.Len(); i++ {
 		X, Y := m.GetPoint(i)
 		s.AddPoint(X, Y, 0 /* epoch */)
 	}
-	for i := range s.Len() {
+	for i := 0; i < s.Len(); i++ {
 		X, Y := s.GetPoint(i)
 		m.AddPoint(X, Y, 0 /* epoch */)
 	}
@@ -259,7 +269,7 @@ func (s *SynapseAnalytic) SetWeight(k int, weight Deepfloat64) {
 }
 
 func (s *SynapseAnalytic) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return Mul(D_E_x, DF(math.Pow(s.In, float64(k))))
+	return Mul(D_E_x, DF(math.Pow(float64(s.In), float64(k))))
 }
 
 func (s *SynapseAnalytic) GetWeight(k int) Deepfloat64 {
