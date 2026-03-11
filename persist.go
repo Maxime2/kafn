@@ -165,6 +165,8 @@ func (n *Neural) Save(path string) error {
 				for _, in := range n.In {
 					enc.Encode(in.GetWeights())
 				}
+				enc.Encode(&n.MinSum)
+				enc.Encode(&n.MaxSum)
 			}
 		}
 	}
@@ -178,6 +180,8 @@ func (n *Neural) Save(path string) error {
 						enc.Encode(tab.Dump())
 					}
 				}
+				enc.Encode(&n.MinSum)
+				enc.Encode(&n.MaxSum)
 			}
 		}
 	}
@@ -219,6 +223,12 @@ func Load(path string) (*Neural, error) {
 					}
 					in.SetWeights(w)
 				}
+				if err := dec.Decode(&n.MinSum); err != nil {
+					return nil, err
+				}
+				if err := dec.Decode(&n.MaxSum); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -235,6 +245,12 @@ func Load(path string) (*Neural, error) {
 						}
 						tab.FromDump(&dump)
 					}
+				}
+				if err := dec.Decode(&n.MinSum); err != nil {
+					return nil, err
+				}
+				if err := dec.Decode(&n.MaxSum); err != nil {
+					return nil, err
 				}
 			}
 		}
