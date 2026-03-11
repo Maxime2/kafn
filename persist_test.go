@@ -69,6 +69,17 @@ func Test_SaveLoad_Performance(t *testing.T) {
 
 	// 6. Assert that the performance has not degraded
 	assert.Equal(t, lossBefore, lossAfter, "Loss (MSE) should be identical after saving and loading")
+
+	// 7. Train again
+	trainer = NewTrainer(config.LossPrecision, 1, 0)
+	trainer.Train(n2, xorData, xorData, 50)
+
+	// 8. Measure the performance of the restored network
+	lossAfter2 := crossValidate(n2, xorData)
+
+	// 9. Assert that the performance has not degraded
+	assert.GreaterOrEqual(t, lossBefore, lossAfter2, "Loss (MSE) should be less or equal after training")
+
 }
 
 func Test_Marshal(t *testing.T) {
