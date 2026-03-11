@@ -1,6 +1,8 @@
 package kafn
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +26,49 @@ func Test_RestoreFromDump(t *testing.T) {
 	for i := range pred1 {
 		assert.True(t, pred1[i] == pred2[i])
 	}
+}
+
+func Test_SaveLoad_Performance(t *testing.T) {
+	Rand.Seed(0)
+
+	// 1. Create and train a network on a simple problem (XOR)
+	config := &Config{
+		Inputs:  2,
+		Outputs: 1,
+	}
+	n := NewNeural(config)
+	xorData := Examples{
+		{[]Deepfloat64{DF(0), DF(0)}, []Deepfloat64{DF(0)}},
+		{[]Deepfloat64{DF(1), DF(0)}, []Deepfloat64{DF(1)}},
+		{[]Deepfloat64{DF(0), DF(1)}, []Deepfloat64{DF(1)}},
+		{[]Deepfloat64{DF(1), DF(1)}, []Deepfloat64{DF(0)}},
+	}
+
+	trainer := NewTrainer(config.LossPrecision, 1, 0)
+	trainer.Train(n, xorData, xorData, 50)
+
+	// 2. Measure its performance (loss/MSE) before saving
+	lossBefore := crossValidate(n, xorData)
+	assert.NotZero(t, lossBefore, "Loss should not be zero after initial training")
+
+	// 3. Save the trained network to a temporary file
+	tmpfile, err := ioutil.TempFile("", "test_save_load_perf_*.network")
+	assert.NoError(t, err)
+	defer os.Remove(tmpfile.Name())
+
+	err = n.Save(tmpfile.Name())
+	assert.NoError(t, err)
+
+	// 4. Load the network from the file into a new instance
+	n2, err := Load(tmpfile.Name())
+	assert.NoError(t, err)
+	assert.NotNil(t, n2)
+
+	// 5. Measure the performance of the restored network
+	lossAfter := crossValidate(n2, xorData)
+
+	// 6. Assert that the performance has not degraded
+	assert.Equal(t, lossBefore, lossAfter, "Loss (MSE) should be identical after saving and loading")
 }
 
 func Test_Marshal(t *testing.T) {
