@@ -18,28 +18,32 @@ type Point struct {
 }
 
 func init() {
-	// Register concrete types for interfaces that will be encoded with gob.
-	// The `Trapolation` field in the `Config` struct is an interface, and this
-	// ensures that gob knows how to serialize/deserialize its concrete implementations.
-	// If other types can be assigned to `Trapolation`, they must be registered too.
-	gob.Register(tabulatedfunction.TrapolationLinear)
+	// tabulatedfunction.Trapolation is a concrete type (int alias),
+	// so gob registration is not required for serialization.
 }
 
 // Dump is a neural network dump
 type Dump struct {
-	Config      *Config
-	Weights     [][][][]Deepfloat64
-	Activations [][]Point
-	Synapses    [][]Point
+	Config   *Config
+	Weights  [][][][]Deepfloat64
+	Synapses [][]Point
 }
 
 // ApplyWeights sets the weights from a four-dimensional slice
 func (n *Neural) ApplyWeights(weights [][][][]Deepfloat64) {
 	for i, l := range n.Layers {
+		if i >= len(weights) || weights[i] == nil {
+			continue
+		}
 		if l.S != SynapseTypeTabulated {
-			for j := range l.Neurons {
-				for k := range l.Neurons[j].In {
-					n.Layers[i].Neurons[j].In[k].SetWeights(weights[i][j][k])
+			for j, neuron := range l.Neurons {
+				if j >= len(weights[i]) || weights[i][j] == nil {
+					continue
+				}
+				for k, in := range neuron.In {
+					if k < len(weights[i][j]) {
+						in.SetWeights(weights[i][j][k])
+					}
 				}
 			}
 		}
@@ -69,6 +73,10 @@ func (n *Neural) ApplySynapses(points [][]Point) {
 		if l.S == SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
 				for _, s := range neuron.In {
+					if current >= len(points) {
+						current++
+						continue
+					}
 					npoints := len(points[current])
 					s.Clear()
 					for i := 0; i < npoints; i++ {
