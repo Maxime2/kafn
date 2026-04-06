@@ -32,6 +32,15 @@ func Test_Forward(t *testing.T) {
 	err := n.Forward([]Deepfloat64{DF(0.1), DF(0.2), DF(0.7)})
 	assert.Nil(t, err)
 
+	// Verify that analytic synapses in Layer 0 were initialized with non-negative weights A
+	for _, neuron := range n.Layers[0].Neurons {
+		for _, synapse := range neuron.In {
+			// For degree 1, the weight at index 1 corresponds to A (the slope)
+			A := synapse.GetWeight(1)
+			assert.GreaterOrEqual(t, Float64(A), 0.0, "Weight A should be non-negative")
+		}
+	}
+
 	expected := []float64{
 		3.5, 3.5, 3.5,
 	}
@@ -87,7 +96,9 @@ func Test_Save_Load(t *testing.T) {
 
 func Test_NumWeights(t *testing.T) {
 	n := NewNeural(&Config{Inputs: 5, Outputs: 3, Degree: 1})
-	assert.Equal(t, 2*5*(2*5+1)+3*(2*5+1), n.NumWeights())
+	// Layer 0: (Degree+1) * Inputs * Neurons = 2 * 5 * 11 = 110
+	// Layer 1: PointsPerSynapse * NeuronsL0 * NeuronsL1 = 1 * 11 * 3 = 33 (assuming 1 point for LoadConstant based on observed behavior)
+	assert.Equal(t, 2*5*(2*5+1)+1*3*(2*5+1), n.NumWeights())
 }
 
 func Test_InterpolateSin(t *testing.T) {

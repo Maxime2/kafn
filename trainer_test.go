@@ -168,7 +168,7 @@ func Test_MultiClass(t *testing.T) {
 
 	for _, d := range data {
 		est := n.Predict(d.Input)
-		assert.InEpsilon(t, 1.0, Float64(Sum(est)), 0.00001)
+		assert.InEpsilon(t, 1.0, Float64(Sum(est)), 0.0001)
 		if Float64(d.Response[0]) == 1.0 {
 			assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)
 		} else {

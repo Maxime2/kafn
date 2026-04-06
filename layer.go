@@ -62,20 +62,16 @@ func (l *Layer) FireT(trapolation tabulatedfunction.Trapolation) {
 
 // CreateInputSynapses create input synapses for the bottom layer
 func (l *Layer) CreateInputSynapses(c *Config) {
-	//domain_min, domain_max := GetActivation(l.A).Domain()
-	//A := float64(2*(domain_max-domain_min)) / float64(c.Inputs) / float64(c.Inputs) / float64(len(l.Neurons)) / float64(c.Degree+1)
-	wA := DF(0) //Deepfloat64(domain_min)
-	//wi := GetWeightFunction(c.Weight, A/20, A)
-	//wEps := Deepfloat64(A / 50 / float64(c.Inputs))
+	wA := DF(0)
 	for _, neuron := range l.Neurons {
 		neuron.In = make([]Synapse, c.Inputs)
-		//f := Fibonacci()
 		for i := range neuron.In {
-			A := math.Pow(float64(i+1) /*float64(f())*/, 0.5)
+			// Since i >= 0, i+1 is always >= 1. log2 of any number >= 1 is >= 0.
+			A := 0.5 * math.Log(2.0+math.Log10(float64(i+1)))
 			neuron.In[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, c.InputTags[i])
 			neuron.In[i].SetWeight(0, wA)
-			neuron.In[i].SetWeight(1, DF(A) /*wA*/)
-			wA = Add(wA, DF(A + Eps)) // neuron.In[i].GetWeight(1) + wEps
+			neuron.In[i].SetWeight(1, DF(A))
+			wA = Add(wA, DF(A+Eps))
 		}
 	}
 }
