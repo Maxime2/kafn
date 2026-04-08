@@ -67,7 +67,7 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 		neuron.In = make([]Synapse, c.Inputs)
 		for i := range neuron.In {
 			// Nested logarithms (iterated logarithm) provide even slower growth.
-			A := 0.5 * math.Log(2.0+math.Log(2.0+math.Log10(1.0+float64(i+1)/float64(c.Inputs)))) / float64(2*c.Inputs+1)
+			A := 0.5 * math.Log(3.0+math.Log(3.0+math.Log(3.0+float64(i+1)/float64(c.Inputs)))) / float64(2*c.Inputs+1)
 			neuron.In[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, c.InputTags[i])
 			neuron.In[i].SetWeight(0, wA)
 			neuron.In[i].SetWeight(1, DF(A))
