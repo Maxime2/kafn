@@ -65,6 +65,9 @@ func (n *Neuron) fireT(trapolation tabulatedfunction.Trapolation) {
 		}
 	}
 
+	// Ensure the final sum is not negative and handle NaN/Inf safety
+	n.Sum = DF(math.Max(0, Float64(n.Sum)))
+
 	if n.Sum < n.MinSum {
 		n.MinSum = n.Sum
 	}
