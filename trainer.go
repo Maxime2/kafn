@@ -175,6 +175,9 @@ func (t *OnlineTrainer) epoch(neural *Neural, epoch uint32) {
 func (t *OnlineTrainer) update(neural *Neural, it uint32) {
 	var wg sync.WaitGroup
 	for i, l := range neural.Layers {
+		if i == 0 {
+			continue
+		}
 		for j, n := range l.Neurons {
 			t.sem.Acquire(context.Background(), 1)
 			wg.Add(1)
