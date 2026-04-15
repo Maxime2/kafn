@@ -219,9 +219,6 @@ func TotalError(E []Deepfloat64) Deepfloat64 {
 
 func (n *Neural) DrawPS(path_prefix string) {
 	for _, l := range n.Layers {
-		//if l.S != SynapseTypeTabulated {
-		//	continue
-		//}
 		for y, neuron := range l.Neurons {
 			for x, in := range neuron.In {
 				path := fmt.Sprintf("%sL-%v-N-%v-In-%v.ps", path_prefix, l.Number, y, x)
@@ -232,10 +229,13 @@ func (n *Neural) DrawPS(path_prefix string) {
 }
 
 func (n *Neural) Smooth() {
-	for _, l := range n.Layers {
-		//if l.S != SynapseTypeTabulated {
-		//	continue
-		//}
+	bottom := 1
+
+	for a, l := range n.Layers {
+		if a < bottom {
+			continue
+		}
+
 		for _, neuron := range l.Neurons {
 			for _, in := range neuron.In {
 				in.Smooth()
@@ -251,9 +251,7 @@ func (n *Neural) Polinate() {
 		if a < bottom {
 			continue
 		}
-		//if l.S != SynapseTypeTabulated {
-		//	continue
-		//}
+
 		for y, neuron := range l.Neurons {
 			for x, in := range neuron.In {
 				for t, p := range l.Neurons {
