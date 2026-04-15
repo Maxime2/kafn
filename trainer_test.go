@@ -374,7 +374,7 @@ func Test_RHW(t *testing.T) {
 	n.Dot("rhw-test.dot")
 	for _, p := range permutations {
 		predict := Float64(n.Predict(p.Input)[0])
-		assert.InEpsilon(t, 1+Float64(1+p.Response[0]), 1+predict, 0.35, "Response: %v; Predict: %v | %v", p.Response[0], predict, p.Input)
+		assert.InEpsilon(t, 1+Float64(p.Response[0]), 1+predict, 0.35, "Response: %v; Predict: %v | %v", p.Response[0], predict, p.Input)
 	}
 	n.SaveReadable("rhw-test-post.neural")
 
