@@ -74,6 +74,7 @@ func (l *Layer) Connect(next *Layer, c *Config) {
 	for j, neuron := range next.Neurons {
 		for i := range l.Neurons {
 			syn := NewSynapseTabulated(c, neuron, fmt.Sprintf("L:%d N:%d", l.Number, i))
+			syn.AddPoint(0.5, 0.5, 0)
 			l.Neurons[i].Out = append(l.Neurons[i].Out, syn)
 			next.Neurons[j].In = append(next.Neurons[j].In, syn)
 		}

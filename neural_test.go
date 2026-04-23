@@ -97,8 +97,8 @@ func Test_Save_Load(t *testing.T) {
 func Test_NumWeights(t *testing.T) {
 	n := NewNeural(&Config{Inputs: 5, Outputs: 3, Degree: 1})
 	// Layer 0: (Degree+1) * Inputs * Neurons = 2 * 5 * 11 = 110
-	// Layer 1: PointsPerSynapse * NeuronsL0 * NeuronsL1 = 1 * 11 * 3 = 33 (assuming 1 point for LoadConstant based on observed behavior)
-	assert.Equal(t, 2*5*(2*5+1)+1*3*(2*5+1), n.NumWeights())
+	// Layer 1: PointsPerSynapse * NeuronsL0 * NeuronsL1 = 2 * 11 * 3 = 66 (each synapse starts with 1 point from LoadConstant + 1 from Connect)
+	assert.Equal(t, 2*5*(2*5+1)+2*3*(2*5+1), n.NumWeights())
 }
 
 func Test_InterpolateSin(t *testing.T) {
