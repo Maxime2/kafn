@@ -157,10 +157,10 @@ func (t *OnlineTrainer) update(neural *Neural) {
 			if numIn == 0 {
 				numIn = 1
 			}
-			gap := Div(Sub(n.Ideal, n.Sum), DF(float64(numIn)))
+			gap := Div(n.Ideal, DF(float64(numIn)))
 
 			for _, synapse := range n.In {
-				synapse.AddPoint(synapse.GetIn(), Add(synapse.GetOut(), gap), neural.Config.Epoch)
+				synapse.AddPoint(synapse.GetIn(), gap, neural.Config.Epoch)
 			}
 
 			wg.Done()

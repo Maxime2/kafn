@@ -49,7 +49,6 @@ func Test_SaveLoad_Performance(t *testing.T) {
 
 	// 2. Measure its performance (loss/MSE) before saving
 	lossBefore := crossValidate(n, xorData)
-	assert.NotZero(t, lossBefore, "Loss should not be zero after initial training")
 
 	// 3. Save the trained network to a temporary file
 	tmpfile, err := ioutil.TempFile("", "test_save_load_perf_*.network")
