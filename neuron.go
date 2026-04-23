@@ -23,56 +23,34 @@ func NewNeuron() *Neuron {
 	}
 }
 
-func (n *Neuron) calculateAndFire(refireSynapses bool) {
+func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
 	n.Sum = DF(0)
 	for _, s := range n.In {
-		if refireSynapses {
-			s.Refire()
-		}
 		preliminarySum := Add(n.Sum, s.GetOut())
 		if !math.IsNaN(Float64(preliminarySum)) {
 			n.Sum = preliminarySum
 		}
 	}
-
 	if n.Sum < n.MinSum {
 		n.MinSum = n.Sum
 	}
 	if n.Sum > n.MaxSum {
 		n.MaxSum = n.Sum
 	}
+	return n.Sum
+}
 
-	nVal := n.Sum
+func (n *Neuron) fire() {
+	nVal := n.calculateNeuronOutput()
+
 	for _, s := range n.Out {
 		s.Fire(nVal)
 	}
 }
 
-func (n *Neuron) fire() {
-	n.calculateAndFire(false)
-}
-
-func (n *Neuron) refire() {
-	n.calculateAndFire(true)
-}
-
 func (n *Neuron) fireT(trapolation tabulatedfunction.Trapolation) {
-	n.Sum = DF(0)
-	for _, s := range n.In {
-		preliminarySum := Add(n.Sum, s.GetOut())
-		if !math.IsNaN(Float64(preliminarySum)) {
-			n.Sum = preliminarySum
-		}
-	}
+	nVal := n.calculateNeuronOutput()
 
-	if n.Sum < n.MinSum {
-		n.MinSum = n.Sum
-	}
-	if n.Sum > n.MaxSum {
-		n.MaxSum = n.Sum
-	}
-
-	nVal := n.Sum
 	for _, s := range n.Out {
 		s.FireT(nVal, trapolation)
 	}

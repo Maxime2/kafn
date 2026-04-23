@@ -3,7 +3,6 @@ package kafn
 import (
 	"fmt"
 	"math"
-	"sync"
 
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
@@ -35,29 +34,15 @@ func NewLayer(l, n int, synapse SynapseType) *Layer {
 }
 
 func (l *Layer) Fire() {
-	var wg sync.WaitGroup
 	for _, neuron := range l.Neurons {
-		wg.Add(1)
-		go func(n *Neuron) {
-			defer wg.Done()
-			n.fire()
-		}(neuron)
+		neuron.fire()
 	}
-	wg.Wait()
-
 }
 
 func (l *Layer) FireT(trapolation tabulatedfunction.Trapolation) {
-	var wg sync.WaitGroup
 	for _, neuron := range l.Neurons {
-		wg.Add(1)
-		go func(n *Neuron) {
-			defer wg.Done()
-			n.fireT(trapolation)
-		}(neuron)
+		neuron.fireT(trapolation)
 	}
-	wg.Wait()
-
 }
 
 // CreateInputSynapses create input synapses for the bottom layer
@@ -72,6 +57,12 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 			neuron.In[i].SetWeight(0, wA)
 			neuron.In[i].SetWeight(1, DF(A))
 			wA = Add(wA, DF(A+Eps))
+		}
+	}
+	for _, neuron := range l.Neurons {
+		for _, s := range neuron.In {
+			s.SetWeight(0, s.GetWeight(0)/wA)
+			s.SetWeight(1, s.GetWeight(1)/wA)
 		}
 	}
 }

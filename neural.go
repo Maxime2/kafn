@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
 
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
@@ -78,23 +77,13 @@ func NewNeural(c *Config) *Neural {
 }
 
 func initializeLayers(c *Config) []*Layer {
-	var layout []int
-	var synapse []SynapseType
-
-	layout = []int{2*c.Inputs + 1, c.Outputs}
-	synapse = []SynapseType{SynapseTypeAnalytic, SynapseTypeTabulated}
-
-	layers := make([]*Layer, len(layout))
-
-	for i := range layers {
-		layers[i] = NewLayer(i, layout[i], synapse[i])
+	layers := []*Layer{
+		NewLayer(0, 2*c.Inputs+1, SynapseTypeAnalytic),
+		NewLayer(1, c.Outputs, SynapseTypeTabulated),
 	}
 
 	layers[0].CreateInputSynapses(c)
-
-	for i := 0; i < len(layers)-1; i++ {
-		layers[i].Connect(layers[i+1], c)
-	}
+	layers[0].Connect(layers[1], c)
 
 	return layers
 }
@@ -117,17 +106,11 @@ func (n *Neural) Forward(input []Deepfloat64) error {
 	if l != n.Config.Inputs {
 		return fmt.Errorf("invalid input dimension - expected: %d got: %d", n.Config.Inputs, len(input))
 	}
-	var wg sync.WaitGroup
 	for _, neuron := range n.Layers[0].Neurons {
-		wg.Add(1)
-		go func(neuron *Neuron) {
-			defer wg.Done()
-			for i := range input {
-				neuron.In[i].Fire(input[i])
-			}
-		}(neuron)
+		for i := range input {
+			neuron.In[i].Fire(input[i])
+		}
 	}
-	wg.Wait()
 
 	n.fire()
 	return nil
@@ -139,17 +122,11 @@ func (n *Neural) ForwardT(input []Deepfloat64, trapolation tabulatedfunction.Tra
 	if l != n.Config.Inputs {
 		return fmt.Errorf("invalid input dimension - expected: %d got: %d", n.Config.Inputs, len(input))
 	}
-	var wg sync.WaitGroup
 	for _, neuron := range n.Layers[0].Neurons {
-		wg.Add(1)
-		go func(neuron *Neuron) {
-			defer wg.Done()
-			for i := range input {
-				neuron.In[i].FireT(input[i], trapolation)
-			}
-		}(neuron)
+		for i := range input {
+			neuron.In[i].FireT(input[i], trapolation)
+		}
 	}
-	wg.Wait()
 
 	n.fireT(trapolation)
 	return nil
