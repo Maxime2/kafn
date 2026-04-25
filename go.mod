@@ -3,7 +3,7 @@ module github.com/Maxime2/kafn
 go 1.25.0
 
 require (
-	github.com/Maxime2/tabulated-function v0.0.0-20260424125127-2f9e28bd6a20
+	github.com/Maxime2/tabulated-function v0.0.0-20260425052432-4223b925cbf7
 	github.com/stretchr/testify v1.8.4
 	github.com/theothertomelliott/acyclic v0.0.1
 	golang.org/x/sync v0.20.0
