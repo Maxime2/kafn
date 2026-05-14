@@ -59,12 +59,6 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 			wA = Add(wA, DF(A+Eps))
 		}
 	}
-	for _, neuron := range l.Neurons {
-		for _, s := range neuron.In {
-			s.SetWeight(0, s.GetWeight(0)/wA)
-			s.SetWeight(1, s.GetWeight(1)/wA)
-		}
-	}
 }
 
 // Connect fully connects layer l to next, and initializes each
