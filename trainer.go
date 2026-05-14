@@ -1,20 +1,16 @@
 package kafn
 
 import (
-	"context"
 	"os"
 	"runtime"
-	"sync"
 	"time"
-
-	"golang.org/x/sync/semaphore"
 
 	"github.com/theothertomelliott/acyclic"
 )
 
 // Trainer is a neural network trainer
 type Trainer interface {
-	Train(n *Neural, examples, validation Examples, iterations int)
+	Train(n *Neural, examples, validation Examples, iterations uint32)
 	SetPrefix(prefix string)
 }
 
@@ -24,7 +20,6 @@ type OnlineTrainer struct {
 	printer     *StatsPrinter
 	verbosity   int
 	parallelism int
-	sem         *semaphore.Weighted
 }
 
 // NewTrainer creates a new trainer
@@ -39,7 +34,6 @@ func NewTrainer(precision, verbosity, parallelism int) *OnlineTrainer {
 		printer:     NewStatsPrinter(precision),
 		verbosity:   verbosity,
 		parallelism: parallelism,
-		sem:         semaphore.NewWeighted(int64(parallelism)),
 	}
 }
 
@@ -61,7 +55,7 @@ func newTraining(layers []*Layer) *internal {
 	}
 }
 
-// Set new output prtefix
+// Set new output prefix
 func (t *OnlineTrainer) SetPrefix(prefix string) {
 	t.printer.SetPrefix(prefix)
 }
@@ -111,20 +105,12 @@ func (t *OnlineTrainer) learn(n *Neural, e Example) {
 
 func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) {
 	loss := GetLoss(n.Config.Loss)
-	var wg sync.WaitGroup
-	ctx := context.Background()
 	for i, neuron := range n.Layers[1].Neurons {
-		t.sem.Acquire(ctx, 1)
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, neuron *Neuron, i int) {
-			defer t.sem.Release(1)
-			t.E[1][i] = Add(t.E[1][i], loss.F(neuron.Sum, ideal[i]))
-			neuron.Ideal = ideal[i]
-
-			wg.Done()
-		}(&wg, neuron, i)
+		// Spawning goroutines per output neuron for each example adds significant overhead.
+		// Sequential processing is more efficient for typical output layer sizes.
+		t.E[1][i] = Add(t.E[1][i], loss.F(neuron.Sum, ideal[i]))
+		neuron.Ideal = ideal[i]
 	}
-	wg.Wait()
 }
 
 // Set epoch for Tabulated Activations
@@ -142,31 +128,21 @@ func (t *OnlineTrainer) epoch(neural *Neural, epoch uint32) {
 
 }
 
-// Update from bootom up
+// Update from bottom up
 func (t *OnlineTrainer) update(neural *Neural) {
-	var wg sync.WaitGroup
 	l := neural.Layers[1]
 
 	for _, n := range l.Neurons {
-		t.sem.Acquire(context.Background(), 1)
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, n *Neuron, l *Layer) {
-			defer t.sem.Release(1)
+		numIn := len(n.In)
+		if numIn == 0 {
+			numIn = 1
+		}
+		gap := Div(n.Ideal, DF(float64(numIn)))
 
-			numIn := len(n.In)
-			if numIn == 0 {
-				numIn = 1
-			}
-			gap := Div(n.Ideal, DF(float64(numIn)))
-
-			for _, synapse := range n.In {
-				synapse.AddPoint(synapse.GetIn(), gap, neural.Config.Epoch)
-			}
-
-			wg.Done()
-		}(&wg, n, l)
+		for _, synapse := range n.In {
+			synapse.AddPoint(synapse.GetIn(), gap, neural.Config.Epoch)
+		}
 	}
-	wg.Wait()
 }
 
 // Save() saves internal of the trainer in readable JSON into file specified

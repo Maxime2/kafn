@@ -222,22 +222,17 @@ func (n *Neural) Smooth() {
 }
 
 func (n *Neural) Polinate() {
-	bottom := 1
-
-	for a, l := range n.Layers {
-		if a < bottom {
-			continue
-		}
-
-		for y, neuron := range l.Neurons {
-			for x, in := range neuron.In {
-				for t, p := range l.Neurons {
-					if t <= y {
-						continue
-					}
-					m := p.In[x]
-					in.Polinate(m)
+	if len(n.Layers) < 2 {
+		return
+	}
+	l := n.Layers[1] // Target the top layer explicitly
+	for y, neuron := range l.Neurons {
+		for x, in := range neuron.In {
+			for t, p := range l.Neurons {
+				if t <= y {
+					continue
 				}
+				in.Polinate(p.In[x])
 			}
 		}
 	}
