@@ -1,6 +1,7 @@
 package kafn
 
 import (
+	"math"
 	"os"
 	"runtime"
 	"time"
@@ -134,14 +135,26 @@ func (t *OnlineTrainer) update(neural *Neural) {
 
 	for _, n := range l.Neurons {
 		numIn := len(n.In)
-		if numIn == 0 {
-			numIn = 1
+		if numIn == 0 { // A neuron with no inputs cannot learn.
+			continue
 		}
 		diff := Sub(n.Ideal, n.Sum)
-		gap := Div(diff, DF(float64(numIn)))
+		gap := Div(diff, DF(float64(numIn))) // Distribute error equally.
 
 		for _, synapse := range n.In {
-			synapse.AddPoint(synapse.GetIn(), Add(synapse.GetOut(), gap), neural.Config.Epoch)
+			currentOut := synapse.GetOut()
+			newOut := Add(currentOut, gap)
+
+			// If the gap is too small to change the float64 value, force a change
+			// by finding the next representable floating-point number.
+			if newOut == currentOut && gap != 0 {
+				if gap > 0 {
+					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(1)))
+				} else {
+					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(-1)))
+				}
+			}
+			synapse.AddPoint(synapse.GetIn(), newOut, neural.Config.Epoch)
 		}
 	}
 }
