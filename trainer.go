@@ -154,6 +154,9 @@ func (t *OnlineTrainer) update(neural *Neural) {
 					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(-1)))
 				}
 			}
+			if newOut == 0 {
+				newOut = DF(math.Nextafter(0.0, math.Inf(1)))
+			}
 			synapse.AddPoint(synapse.GetIn(), newOut, neural.Config.Epoch)
 		}
 	}
