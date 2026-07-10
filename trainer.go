@@ -74,7 +74,6 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 	}
 
 	for i := uint32(1); i <= iterations; i++ {
-		examples.Shuffle()
 		n.Config.Epoch++
 		for k := range t.E {
 			for j := range t.E[k] {

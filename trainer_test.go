@@ -49,7 +49,7 @@ func Test_RegressionLinearOuts(t *testing.T) {
 	for i := 0.0; i < 100.0; i++ {
 		squares = append(squares, Example{Input: []Deepfloat64{DF(i)}, Response: []Deepfloat64{DF(math.Sqrt(1 + i))}})
 	}
-	squares.Shuffle()
+
 	n := NewNeural(&Config{
 		Inputs:  1,
 		Outputs: 1,

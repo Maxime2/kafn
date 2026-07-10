@@ -9,14 +9,6 @@ type Example struct {
 // Examples is a set of input-output pairs
 type Examples []Example
 
-// Shuffle shuffles slice in-place
-func (e Examples) Shuffle() {
-	for i := range e {
-		j := Rand.Intn(i + 1)
-		e[i], e[j] = e[j], e[i]
-	}
-}
-
 // Split assigns each element to two new slices
 // according to probability p
 func (e Examples) Split(p float64) (first, second Examples) {
