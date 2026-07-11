@@ -99,18 +99,24 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 
 func (t *OnlineTrainer) learn(n *Neural, e Example) {
 	n.Forward(e.Input)
-	t.calculateDeltas(n, e.Response)
-	t.update(n)
+	if t.calculateDeltas(n, e.Response) {
+		t.update(n)
+	}
 }
 
-func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) {
+func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) bool {
 	loss := GetLoss(n.Config.Loss)
+	needsUpdate := false
 	for i, neuron := range n.Layers[1].Neurons {
 		// Spawning goroutines per output neuron for each example adds significant overhead.
 		// Sequential processing is more efficient for typical output layer sizes.
 		t.E[1][i] = Add(t.E[1][i], loss.F(neuron.Sum, ideal[i]))
 		neuron.Ideal = ideal[i]
+		if neuron.Sum != ideal[i] {
+			needsUpdate = true
+		}
 	}
+	return needsUpdate
 }
 
 // Set epoch for Tabulated Activations
@@ -137,6 +143,7 @@ func (t *OnlineTrainer) update(neural *Neural) {
 		if numIn == 0 { // A neuron with no inputs cannot learn.
 			continue
 		}
+
 		diff := Sub(n.Ideal, n.Sum)
 		gap := Div(diff, DF(float64(numIn))) // Distribute error equally.
 
