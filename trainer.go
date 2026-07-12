@@ -99,24 +99,30 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 
 func (t *OnlineTrainer) learn(n *Neural, e Example) {
 	n.Forward(e.Input)
-	if t.calculateDeltas(n, e.Response) {
-		t.update(n)
+	needsUpdate, errors := t.calculateDeltas(n, e.Response)
+	if needsUpdate {
+		t.update(n, errors)
 	}
 }
 
-func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) bool {
+func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) (bool, []Deepfloat64) {
 	loss := GetLoss(n.Config.Loss)
 	needsUpdate := false
-	for i, neuron := range n.Layers[1].Neurons {
-		// Spawning goroutines per output neuron for each example adds significant overhead.
-		// Sequential processing is more efficient for typical output layer sizes.
+	outputLayer := n.Layers[1]
+	errors := make([]Deepfloat64, len(outputLayer.Neurons))
+
+	for i, neuron := range outputLayer.Neurons {
+		// Calculate the error gradient (ideal - estimate)
+		err := Sub(ideal[i], neuron.Sum)
+		errors[i] = err
+		// Accumulate the squared error for reporting
 		t.E[1][i] = Add(t.E[1][i], loss.F(neuron.Sum, ideal[i]))
 		neuron.Ideal = ideal[i]
-		if neuron.Sum != ideal[i] {
+		if err != 0 {
 			needsUpdate = true
 		}
 	}
-	return needsUpdate
+	return needsUpdate, errors
 }
 
 // Set epoch for Tabulated Activations
@@ -135,17 +141,16 @@ func (t *OnlineTrainer) epoch(neural *Neural, epoch uint32) {
 }
 
 // Update from bottom up
-func (t *OnlineTrainer) update(neural *Neural) {
+func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 	l := neural.Layers[1]
 
-	for _, n := range l.Neurons {
+	for i, n := range l.Neurons {
 		numIn := len(n.In)
 		if numIn == 0 { // A neuron with no inputs cannot learn.
 			continue
 		}
 
-		diff := Sub(n.Ideal, n.Sum)
-		gap := Div(diff, DF(float64(numIn))) // Distribute error equally.
+		gap := Div(errors[i], DF(float64(numIn))) // Distribute error equally.
 
 		for _, synapse := range n.In {
 			currentOut := synapse.GetOut()
@@ -165,6 +170,7 @@ func (t *OnlineTrainer) update(neural *Neural) {
 			}
 			synapse.AddPoint(synapse.GetIn(), newOut, neural.Config.Epoch)
 		}
+
 	}
 }
 
