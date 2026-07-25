@@ -43,6 +43,7 @@ type Synapse interface {
 	Smooth()
 	Polinate(Synapse)
 	Clear()
+	Expand(n int)
 }
 
 type SynapseTabulated struct {
@@ -196,6 +197,10 @@ func (s *SynapseTabulated) Polinate(m Synapse) {
 	}
 }
 
+func (s *SynapseTabulated) Expand(n int) {
+	s.direct.Expand(n)
+}
+
 type SynapseAnalytic struct {
 	Weights []Deepfloat64
 	Up      *Neuron
@@ -318,3 +323,5 @@ func (s *SynapseAnalytic) DrawPS(path string) {}
 func (s *SynapseAnalytic) Smooth() {}
 
 func (s *SynapseAnalytic) Polinate(m Synapse) {}
+
+func (s *SynapseAnalytic) Expand(n int) {}

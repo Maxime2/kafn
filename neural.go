@@ -238,6 +238,18 @@ func (n *Neural) Polinate() {
 	}
 }
 
+func (n *Neural) Expand(steps int) {
+	if len(n.Layers) < 2 {
+		return
+	}
+	l := n.Layers[1] // Target the top layer explicitly
+	for _, neuron := range l.Neurons {
+		for _, s := range neuron.In {
+			s.Expand(steps)
+		}
+	}
+}
+
 func (n *Neural) Check() string {
 	var report string = ""
 
