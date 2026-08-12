@@ -44,6 +44,8 @@ github.com/Maxime2/tabulated-function v0.0.0-20260812123611-4fde279ed751 h1:uNVu
 github.com/Maxime2/tabulated-function v0.0.0-20260812123611-4fde279ed751/go.mod h1:udS6/r3rkpzjzJ3Yp+w9+dCH/pqWwYyUaoFCXJ6EVyc=
 github.com/Maxime2/tabulated-function v0.0.0-20260812124521-2bb567f7908f h1:kp4GK5MlHVMNid2E89fpZzyeptlrOGml3P70CDrFSdQ=
 github.com/Maxime2/tabulated-function v0.0.0-20260812124521-2bb567f7908f/go.mod h1:udS6/r3rkpzjzJ3Yp+w9+dCH/pqWwYyUaoFCXJ6EVyc=
+github.com/Maxime2/tabulated-function v0.0.0-20260812210402-8d29121df47b h1:hdGn9JDrnfAASmy8FtBxddPJe9exDy7DEkO0xdnidjc=
+github.com/Maxime2/tabulated-function v0.0.0-20260812210402-8d29121df47b/go.mod h1:udS6/r3rkpzjzJ3Yp+w9+dCH/pqWwYyUaoFCXJ6EVyc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
