@@ -145,7 +145,6 @@ func (t *OnlineTrainer) epoch(neural *Neural, epoch uint32) {
 
 }
 
-// Update from bottom up
 func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 	outLayerIdx := len(neural.Layers) - 1
 	l := neural.Layers[outLayerIdx]
@@ -156,9 +155,12 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 			continue
 		}
 
-		gap := Div(errors[i], DF(float64(numIn))) // Distribute error equally.
+		remainingError := errors[i]
 
-		for _, synapse := range n.In {
+		for idx, synapse := range n.In {
+			remainingSynapses := numIn - idx
+			gap := Div(remainingError, DF(float64(remainingSynapses)))
+
 			currentOut := synapse.GetOut()
 			newOut := Add(currentOut, gap)
 
@@ -175,6 +177,9 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 				newOut = DF(math.Nextafter(0.0, math.Inf(1)))
 			}
 			synapse.AddPoint(synapse.GetIn(), newOut, neural.Config.Epoch)
+
+			actualAppliedGap := Sub(newOut, currentOut)
+			remainingError = Sub(remainingError, actualAppliedGap)
 		}
 
 	}
