@@ -56,9 +56,9 @@ func (n *Neural) Weights() [][][][]Deepfloat64 {
 	for i, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
 			weights[i] = make([][][]Deepfloat64, len(l.Neurons))
-			for j, n := range l.Neurons {
-				weights[i][j] = make([][]Deepfloat64, len(n.In))
-				for k, in := range n.In {
+			for j, neuron := range l.Neurons {
+				weights[i][j] = make([][]Deepfloat64, len(neuron.In))
+				for k, in := range neuron.In {
 					weights[i][j][k] = in.GetWeights()
 				}
 			}
@@ -93,8 +93,8 @@ func (n *Neural) Synapses() [][]Point {
 	var synapses [][]Point
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
-			for _, n := range l.Neurons {
-				for _, s := range n.In {
+			for _, neuron := range l.Neurons {
+				for _, s := range neuron.In {
 					points := s.Len()
 					acts := make([]Point, points)
 					for i := 0; i < points; i++ {
@@ -164,17 +164,25 @@ func (n *Neural) Save(path string) error {
 	enc := gob.NewEncoder(w)
 
 	// Store Config
-	enc.Encode(n.Config)
+	if err := enc.Encode(n.Config); err != nil {
+		return err
+	}
 
 	// Store Weights
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
-			for _, n := range l.Neurons {
-				for _, in := range n.In {
-					enc.Encode(in.GetWeights())
+			for _, neuron := range l.Neurons {
+				for _, in := range neuron.In {
+					if err := enc.Encode(in.GetWeights()); err != nil {
+						return err
+					}
 				}
-				enc.Encode(&n.MinSum)
-				enc.Encode(&n.MaxSum)
+				if err := enc.Encode(&neuron.MinSum); err != nil {
+					return err
+				}
+				if err := enc.Encode(&neuron.MaxSum); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -182,19 +190,27 @@ func (n *Neural) Save(path string) error {
 	// Store Tabulated Synapses
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
-			for _, n := range l.Neurons {
-				for _, s := range n.In {
+			for _, neuron := range l.Neurons {
+				for _, s := range neuron.In {
 					if tab, ok := s.(*SynapseTabulated); ok {
-						enc.Encode(tab.Dump())
+						if err := enc.Encode(tab.Dump()); err != nil {
+							return err
+						}
 					}
 				}
-				enc.Encode(&n.MinSum)
-				enc.Encode(&n.MaxSum)
+				if err := enc.Encode(&neuron.MinSum); err != nil {
+					return err
+				}
+				if err := enc.Encode(&neuron.MaxSum); err != nil {
+					return err
+				}
 			}
 		}
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -223,18 +239,18 @@ func Load(path string) (*Neural, error) {
 	// Restore Weights
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
-			for _, n := range l.Neurons {
-				for _, in := range n.In {
+			for _, neuron := range l.Neurons {
+				for _, in := range neuron.In {
 					var w []Deepfloat64
 					if err := dec.Decode(&w); err != nil {
 						return nil, err
 					}
 					in.SetWeights(w)
 				}
-				if err := dec.Decode(&n.MinSum); err != nil {
+				if err := dec.Decode(&neuron.MinSum); err != nil {
 					return nil, err
 				}
-				if err := dec.Decode(&n.MaxSum); err != nil {
+				if err := dec.Decode(&neuron.MaxSum); err != nil {
 					return nil, err
 				}
 			}
@@ -244,8 +260,8 @@ func Load(path string) (*Neural, error) {
 	// Restore Tabulated Synapses
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
-			for _, n := range l.Neurons {
-				for _, s := range n.In {
+			for _, neuron := range l.Neurons {
+				for _, s := range neuron.In {
 					if tab, ok := s.(*SynapseTabulated); ok {
 						var dump tabulatedfunction.Dump
 						if err := dec.Decode(&dump); err != nil {
@@ -254,10 +270,10 @@ func Load(path string) (*Neural, error) {
 						tab.FromDump(&dump)
 					}
 				}
-				if err := dec.Decode(&n.MinSum); err != nil {
+				if err := dec.Decode(&neuron.MinSum); err != nil {
 					return nil, err
 				}
-				if err := dec.Decode(&n.MaxSum); err != nil {
+				if err := dec.Decode(&neuron.MaxSum); err != nil {
 					return nil, err
 				}
 			}
@@ -277,10 +293,10 @@ func (n *Neural) Dot(path string) error {
 	fmt.Fprintf(f, "digraph {\n")
 
 	for l, lr := range n.Layers {
-		for n, nr := range lr.Neurons {
+		for neuronIdx, nr := range lr.Neurons {
 			for _, in := range nr.In {
 				fmt.Fprintf(f, "\"%s\" -> \"L:%d N:%d\"[label=\"%v\"]\n",
-					in.GetTag(), l, n, in.WeightsString())
+					in.GetTag(), l, neuronIdx, in.WeightsString())
 			}
 		}
 	}
@@ -300,8 +316,8 @@ func (n *Neural) Net(path string) error {
 
 	for l, lr := range n.Layers {
 		fmt.Fprintf(f, "L: %d\n", l)
-		for n, nr := range lr.Neurons {
-			fmt.Fprintf(f, "  N: %d;  Sum: %v; Ideal: %v\n", n, nr.Sum, nr.Ideal)
+		for neuronIdx, nr := range lr.Neurons {
+			fmt.Fprintf(f, "  N: %d;  Sum: %v; Ideal: %v\n", neuronIdx, nr.Sum, nr.Ideal)
 			for _, in := range nr.In {
 				fmt.Fprintf(f, " [%v %v]", in.GetIn(), in.GetOut())
 			}

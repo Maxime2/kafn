@@ -1,8 +1,8 @@
 package kafn
 
 import (
-	"bytes"
 	"encoding/binary"
+	"errors"
 	"math"
 )
 
@@ -41,22 +41,16 @@ func Float64(a Deepfloat64) float64 {
 
 // GobEncode implements the gob.GobEncoder interface.
 func (d *Deepfloat64) GobEncode() ([]byte, error) {
-	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.BigEndian, float64(*d))
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], math.Float64bits(float64(*d)))
+	return buf[:], nil
 }
 
 // GobDecode implements the gob.GobDecoder interface.
 func (d *Deepfloat64) GobDecode(data []byte) error {
-	buf := bytes.NewReader(data)
-	var f float64
-	err := binary.Read(buf, binary.BigEndian, &f)
-	if err != nil {
-		return err
+	if len(data) < 8 {
+		return errors.New("truncated float64 data")
 	}
-	*d = Deepfloat64(f)
+	*d = Deepfloat64(math.Float64frombits(binary.BigEndian.Uint64(data)))
 	return nil
 }

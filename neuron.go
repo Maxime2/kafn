@@ -7,6 +7,10 @@ import (
 )
 
 // Neuron is a neural network node
+//
+// Note: Neuron is stateful and NOT thread-safe. Concurrent calls to
+// Forward or Predict on the parent Neural network will cause data races
+// and corrupted activation states because transient values are stored directly in the fields.
 type Neuron struct {
 	In             []Synapse
 	Out            []Synapse
@@ -27,7 +31,8 @@ func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
 	n.Sum = DF(0)
 	for _, s := range n.In {
 		preliminarySum := Add(n.Sum, s.GetOut())
-		if !math.IsNaN(Float64(preliminarySum)) {
+		val := Float64(preliminarySum)
+		if !math.IsNaN(val) && !math.IsInf(val, 0) {
 			n.Sum = preliminarySum
 		}
 	}

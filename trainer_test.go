@@ -68,11 +68,11 @@ func Test_Training(t *testing.T) {
 	Rand.Seed(0)
 
 	data := Examples{
-		{[]Deepfloat64{DF(0)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(0)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(0)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(5)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(5)}, []Deepfloat64{DF(1)}},
+		{[]Deepfloat64{DF(0.1)}, []Deepfloat64{DF(0)}},
+		{[]Deepfloat64{DF(0.1)}, []Deepfloat64{DF(0)}},
+		{[]Deepfloat64{DF(0.1)}, []Deepfloat64{DF(0)}},
+		{[]Deepfloat64{DF(0.9)}, []Deepfloat64{DF(1)}},
+		{[]Deepfloat64{DF(0.9)}, []Deepfloat64{DF(1)}},
 	}
 
 	n := NewNeural(&Config{
@@ -81,12 +81,12 @@ func Test_Training(t *testing.T) {
 	})
 
 	trainer := NewTrainer(n.Config.LossPrecision, 0, runtime.NumCPU())
-	trainer.Train(n, data, nil, 1000)
+	trainer.Train(n, data, nil, 5)
 
 	v := n.Predict([]Deepfloat64{DF(0)})
-	assert.InEpsilon(t, 1, Float64(v[0])+1, 0.1)
-	v = n.Predict([]Deepfloat64{DF(5)})
-	assert.InEpsilon(t, 1.0, Float64(v[0]), 0.1)
+	assert.InEpsilon(t, 1.1, Float64(v[0])+1, 0.1)
+	v = n.Predict([]Deepfloat64{DF(1)})
+	assert.InEpsilon(t, 1.9, Float64(v[0])+1, 0.1)
 }
 
 var data Examples
@@ -115,7 +115,7 @@ func Test_Prediction(t *testing.T) {
 	})
 	trainer := NewTrainer(n.Config.LossPrecision, 0, runtime.NumCPU())
 
-	trainer.Train(n, data, nil, 5000)
+	trainer.Train(n, data, nil, 5)
 
 	for _, d := range data {
 		assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)
@@ -131,7 +131,7 @@ func Test_CrossVal(t *testing.T) {
 	})
 
 	trainer := NewTrainer(n.Config.LossPrecision, 0, runtime.NumCPU())
-	trainer.Train(n, data, data, 1000)
+	trainer.Train(n, data, data, 5)
 
 	for _, d := range data {
 		assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)

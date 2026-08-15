@@ -212,9 +212,9 @@ type SynapseAnalytic struct {
 // and marked with specified tag
 func NewSynapseAnalytic(up *Neuron, degree int, init_weights []Deepfloat64, tag string) *SynapseAnalytic {
 	var weights = make([]Deepfloat64, degree+1)
-	for i := 0; i <= degree; i++ {
-		weights[i] = init_weights[i]
-	}
+
+	copy(weights, init_weights)
+
 	return &SynapseAnalytic{
 		Weights: weights,
 		In:      DF(0),

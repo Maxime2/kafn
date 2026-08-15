@@ -63,6 +63,10 @@ func (t *OnlineTrainer) SetPrefix(prefix string) {
 
 // Train trains n
 func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iterations uint32) {
+	if len(examples) == 0 {
+		return
+	}
+
 	t.internal = newTraining(n.Layers)
 
 	t.printer.Init(n)
@@ -108,7 +112,8 @@ func (t *OnlineTrainer) learn(n *Neural, e Example) {
 func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) (bool, []Deepfloat64) {
 	loss := GetLoss(n.Config.Loss)
 	needsUpdate := false
-	outputLayer := n.Layers[1]
+	outLayerIdx := len(n.Layers) - 1
+	outputLayer := n.Layers[outLayerIdx]
 	errors := make([]Deepfloat64, len(outputLayer.Neurons))
 
 	for i, neuron := range outputLayer.Neurons {
@@ -116,7 +121,7 @@ func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) (bool, [
 		err := Sub(ideal[i], neuron.Sum)
 		errors[i] = err
 		// Accumulate the squared error for reporting
-		t.E[1][i] = Add(t.E[1][i], loss.F(neuron.Sum, ideal[i]))
+		t.E[outLayerIdx][i] = Add(t.E[outLayerIdx][i], loss.F(neuron.Sum, ideal[i]))
 		neuron.Ideal = ideal[i]
 		if err != 0 {
 			needsUpdate = true
@@ -142,7 +147,8 @@ func (t *OnlineTrainer) epoch(neural *Neural, epoch uint32) {
 
 // Update from bottom up
 func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
-	l := neural.Layers[1]
+	outLayerIdx := len(neural.Layers) - 1
+	l := neural.Layers[outLayerIdx]
 
 	for i, n := range l.Neurons {
 		numIn := len(n.In)

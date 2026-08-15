@@ -47,15 +47,20 @@ func (l *Layer) FireT(trapolation tabulatedfunction.Trapolation) {
 
 // CreateInputSynapses create input synapses for the bottom layer
 func (l *Layer) CreateInputSynapses(c *Config) {
+	if c.Inputs <= 0 {
+		return
+	}
 	wA := DF(0)
 	for _, neuron := range l.Neurons {
 		neuron.In = make([]Synapse, c.Inputs)
 		for i := range neuron.In {
 			// Nested logarithms (iterated logarithm) provide even slower growth.
 			A := 0.5 * math.Log(3.0+math.Log(3.0+math.Log(3.0+float64(i+1)/float64(c.Inputs)))) / float64(2*c.Inputs+1)
-			neuron.In[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, c.InputTags[i])
-			neuron.In[i].SetWeight(0, wA)
-			neuron.In[i].SetWeight(1, DF(A))
+			tag := fmt.Sprintf("In:%d", i)
+			if i < len(c.InputTags) {
+				tag = c.InputTags[i]
+			}
+			neuron.In[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, tag)
 			wA = Add(wA, DF(A+Eps))
 		}
 	}
@@ -65,24 +70,24 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 // synapse with the given weight function
 // func (l *Layer) Connect(next *Layer, degree int, weight WeightType) {
 func (l *Layer) Connect(next *Layer, c *Config) {
-	for j, neuron := range next.Neurons {
+	for _, neuron := range next.Neurons {
 		for i := range l.Neurons {
 			syn := NewSynapseTabulated(c, neuron, fmt.Sprintf("L:%d N:%d", l.Number, i))
 			syn.AddPoint(0.5, 0.5, 0)
 			l.Neurons[i].Out = append(l.Neurons[i].Out, syn)
-			next.Neurons[j].In = append(next.Neurons[j].In, syn)
+			neuron.In = append(neuron.In, syn)
 		}
 	}
 }
 
-func (l Layer) NumIns() (num int) {
+func (l *Layer) NumIns() (num int) {
 	for _, neuron := range l.Neurons {
 		num += len(neuron.In)
 	}
 	return
 }
 
-func (l Layer) String() string {
+func (l *Layer) String() string {
 	// The original implementation `return fmt.Sprintf("%+v", l)` causes infinite recursion.
 	return fmt.Sprintf("Layer(Number: %d, SynapseType: %v, Neurons: %d)", l.Number, l.S, len(l.Neurons))
 }

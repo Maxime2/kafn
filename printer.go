@@ -29,19 +29,19 @@ func (p *StatsPrinter) SetPrefix(prefix string) {
 
 // Init initializes printer
 func (p *StatsPrinter) Init(n *Neural) {
-	fmt.Fprintf(p.w, "%s\tEpochs\tElapsed\tError\tLoss (%s)\t", p.prefix, n.Config.Loss)
-	fmt.Fprintf(p.w, "\n%s\t---\t---\t---\t---\t\n", p.prefix)
-	p.w.Flush()
+	_, _ = fmt.Fprintf(p.w, "%s\tEpochs\tElapsed\tError\tLoss (%s)\n", p.prefix, n.Config.Loss)
+	_, _ = fmt.Fprintf(p.w, "%s\t---\t---\t---\t---\n", p.prefix)
+	_ = p.w.Flush()
 }
 
 // PrintProgress prints the current state of training
 func (p *StatsPrinter) PrintProgress(n *Neural, validation Examples, elapsed time.Duration, iteration uint32) {
-	fmt.Fprintf(p.w, "%s\t%d (%d)\t%s\t%.*e\t%.*e\n", p.prefix,
+	_, _ = fmt.Fprintf(p.w, "%s\t%d (%d)\t%s\t%.*e\t%.*e\n", p.prefix,
 		iteration, n.Config.Epoch,
 		elapsed.String(),
-		n.Config.LossPrecision, n.TotalError,
-		n.Config.LossPrecision, crossValidate(n, validation))
-	p.w.Flush()
+		n.Config.LossPrecision, float64(n.TotalError),
+		n.Config.LossPrecision, float64(crossValidate(n, validation)))
+	_ = p.w.Flush()
 }
 
 func crossValidate(n *Neural, validation Examples) Deepfloat64 {

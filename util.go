@@ -4,10 +4,13 @@ import "math"
 
 // ArgMax is the index of the largest element
 func ArgMax(xx []Deepfloat64) int {
+	if len(xx) == 0 {
+		return -1
+	}
 	max, idx := xx[0], 0
 	for i, x := range xx {
 		if x > max {
-			max, idx = xx[i], i
+			max, idx = x, i
 		}
 	}
 	return idx

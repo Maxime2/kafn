@@ -24,6 +24,9 @@ func (e Examples) Split(p float64) (first, second Examples) {
 
 // SplitSize splits slice into parts of size size
 func (e Examples) SplitSize(size int) []Examples {
+	if size <= 0 || len(e) == 0 {
+		return nil
+	}
 	res := make([]Examples, 0)
 	for i := 0; i < len(e); i += size {
 		res = append(res, e[i:min(i+size, len(e))])
@@ -33,23 +36,12 @@ func (e Examples) SplitSize(size int) []Examples {
 
 // SplitN splits slice into n parts
 func (e Examples) SplitN(n int) []Examples {
+	if n <= 0 || len(e) == 0 {
+		return nil
+	}
 	res := make([]Examples, n)
 	for i, el := range e {
 		res[i%n] = append(res[i%n], el)
 	}
 	return res
-}
-
-func max(a, b int) int {
-	if a >= b {
-		return a
-	}
-	return b
-}
-
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
 }
