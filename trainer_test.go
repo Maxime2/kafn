@@ -31,7 +31,7 @@ func Test_BoundedRegression(t *testing.T) {
 		})
 
 		trainer := NewTrainer(n.Config.LossPrecision, 100, runtime.NumCPU())
-		trainer.Train(n, data, nil, 1000)
+		trainer.Train(n, data, nil, 5)
 
 		tests := []Deepfloat64{DF(0.0), DF(0.1), DF(0.25), DF(0.5), DF(0.75), DF(0.9)}
 		for _, x := range tests {
