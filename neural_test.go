@@ -1,8 +1,6 @@
 package kafn
 
 import (
-	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -45,7 +43,7 @@ func Test_Forward(t *testing.T) {
 		3.5, 3.5, 3.5,
 	}
 
-	fmt.Printf("%v", n.Check())
+	t.Logf("%v", n.Check())
 
 	for j, n := range n.Layers[1].Neurons {
 		assert.InEpsilon(t, expected[j], Float64(n.Sum), 1e-12)
@@ -63,7 +61,7 @@ func Test_Save_Load(t *testing.T) {
 	}
 	n := NewNeural(&c)
 
-	tmpfile, err := ioutil.TempFile("", "test_load_save")
+	tmpfile, err := os.CreateTemp("", "test_load_save")
 	assert.Nil(t, err)
 	defer os.Remove(tmpfile.Name()) // clean up
 
@@ -96,9 +94,19 @@ func Test_Save_Load(t *testing.T) {
 
 func Test_NumWeights(t *testing.T) {
 	n := NewNeural(&Config{Inputs: 5, Outputs: 3, Degree: 1})
-	// Layer 0: (Degree+1) * Inputs * Neurons = 2 * 5 * 11 = 110
-	// Layer 1: PointsPerSynapse * NeuronsL0 * NeuronsL1 = 2 * 11 * 3 = 66 (each synapse starts with 1 point from LoadConstant + 1 from Connect)
-	assert.Equal(t, 2*5*(2*5+1)+2*3*(2*5+1), n.NumWeights())
+	// Layer 0 (Analytic): (Degree+1) * Inputs * Neurons
+	// Neurons in L0 = 2*Inputs+1 = 2*5+1 = 11
+	// Weights in L0 = (1+1) * 5 * 11 = 110
+	weightsL0 := (1 + 1) * 5 * (2*5 + 1)
+
+	// Layer 1 (Tabulated): PointsPerSynapse * NeuronsL0 * NeuronsL1
+	// NewSynapseTabulated creates 2 points via LoadConstant. The subsequent
+	// AddPoint in layer.Connect adds a point that lies on the same horizontal line,
+	// so it is optimized away by the tabulated-function library as it's redundant
+	// for a linear (order 1) function. Thus, there are 2 points per synapse.
+	// Weights in L1 = 2 * 11 * 3 = 66
+	weightsL1 := 2 * (2*5 + 1) * 3
+	assert.Equal(t, weightsL0+weightsL1, n.NumWeights())
 }
 
 func Test_InterpolateSin(t *testing.T) {

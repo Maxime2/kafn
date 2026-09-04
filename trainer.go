@@ -77,6 +77,10 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 		n.Smooth()
 	}
 
+	for j := 0; j < len(examples); j++ {
+		t.learn_directional(n, examples[j])
+	}
+
 	for i := uint32(1); i <= iterations; i++ {
 		n.Config.Epoch++
 		for k := range t.E {
@@ -106,6 +110,14 @@ func (t *OnlineTrainer) learn(n *Neural, e Example) {
 	needsUpdate, errors := t.calculateDeltas(n, e.Response)
 	if needsUpdate {
 		t.update(n, errors)
+	}
+}
+
+func (t *OnlineTrainer) learn_directional(n *Neural, e Example) {
+	n.Forward(e.Input)
+	needsUpdate, errors := t.calculateDeltas(n, e.Response)
+	if needsUpdate {
+		t.update_directional(n, errors)
 	}
 }
 
@@ -183,6 +195,56 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 		}
 
 	}
+}
+
+func (t *OnlineTrainer) update_directional(neural *Neural, errors []Deepfloat64) {
+	outLayerIdx := len(neural.Layers) - 1
+	l := neural.Layers[outLayerIdx]
+
+	for i, n := range l.Neurons {
+		numIn := len(n.In)
+		if numIn == 0 { // A neuron with no inputs cannot learn.
+			continue
+		}
+
+		// The update step is proportional to the sign of the error, and distributed
+		// amongst the incoming synapses. It's also scaled down by the epoch number.
+		divisor := Deepfloat64(1.0)
+		if neural.Config.Epoch > 0 {
+			divisor = Deepfloat64(neural.Config.Epoch)
+		}
+		gap := Div(Div(sign(errors[i]), Deepfloat64(numIn)), divisor)
+
+		for _, synapse := range n.In {
+			currentOut := synapse.GetOut()
+			newOut := Add(currentOut, gap)
+
+			// If the gap is too small to change the float64 value, force a change
+			// by finding the next representable floating-point number.
+			if newOut == currentOut && gap != 0 {
+				if gap > 0 {
+					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(1)))
+				} else {
+					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(-1)))
+				}
+			}
+			if newOut == 0 {
+				newOut = DF(math.Nextafter(0.0, math.Inf(1)))
+			}
+			synapse.AddPoint(synapse.GetIn(), newOut, neural.Config.Epoch)
+		}
+
+	}
+}
+
+func sign(f Deepfloat64) Deepfloat64 {
+	if f < 0 {
+		return -1
+	}
+	if f > 0 {
+		return 1
+	}
+	return 0
 }
 
 // Save() saves internal of the trainer in readable JSON into file specified

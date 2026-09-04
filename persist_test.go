@@ -1,7 +1,6 @@
 package kafn
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -24,7 +23,7 @@ func Test_RestoreFromDump(t *testing.T) {
 	pred2 := new.Predict([]Deepfloat64{DF(0)})
 	assert.Len(t, pred1, len(pred2))
 	for i := range pred1 {
-		assert.True(t, pred1[i] == pred2[i])
+		assert.Equal(t, pred1[i], pred2[i])
 	}
 }
 
@@ -51,7 +50,7 @@ func Test_SaveLoad_Performance(t *testing.T) {
 	lossBefore := crossValidate(n, xorData)
 
 	// 3. Save the trained network to a temporary file
-	tmpfile, err := ioutil.TempFile("", "test_save_load_perf_*.network")
+	tmpfile, err := os.CreateTemp("", "test_save_load_perf_*.network")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 
@@ -100,6 +99,6 @@ func Test_Marshal(t *testing.T) {
 	pred2 := new.Predict([]Deepfloat64{DF(0)})
 	assert.Len(t, pred1, len(pred2))
 	for i := range pred1 {
-		assert.True(t, pred1[i] == pred2[i])
+		assert.Equal(t, pred1[i], pred2[i])
 	}
 }

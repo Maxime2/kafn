@@ -1,7 +1,6 @@
 package kafn
 
 import (
-	"fmt"
 	"math"
 
 	"runtime"
@@ -381,14 +380,14 @@ func Test_RHW(t *testing.T) {
 	x := 700.0
 	for i := 0; i < 20; i++ {
 		r := 1 / (1 + math.Exp(x))
-		fmt.Printf(" oo %v :: %v | %v | %v\n", x, r, 1-r, r*(1-r))
+		t.Logf(" oo %v :: %v | %v | %v\n", x, r, 1-r, r*(1-r))
 		x += 1.0
 	}
-	fmt.Printf(" Of -Inf: %v\n", 1/(1+math.Inf(-1)))
+	t.Logf(" Of -Inf: %v\n", 1/(1+math.Inf(-1)))
 
 	for x := -10; x > -24; x-- {
 		y := math.Pow(10, float64(x))
-		fmt.Printf(" dd %v :: %v  %v\n", x, y, 1.0-y)
+		t.Logf(" dd %v :: %v  %v\n", x, y, 1.0-y)
 	}
 }
 
