@@ -112,9 +112,9 @@ func Test_Prediction(t *testing.T) {
 		Inputs:  2,
 		Outputs: 1,
 	})
-	trainer := NewTrainer(n.Config.LossPrecision, 0, runtime.NumCPU())
+	trainer := NewTrainer(n.Config.LossPrecision, 1, runtime.NumCPU())
 
-	trainer.Train(n, data, nil, 5)
+	trainer.Train(n, data, data, 15)
 
 	for _, d := range data {
 		assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)
@@ -130,7 +130,7 @@ func Test_CrossVal(t *testing.T) {
 	})
 
 	trainer := NewTrainer(n.Config.LossPrecision, 0, runtime.NumCPU())
-	trainer.Train(n, data, data, 5)
+	trainer.Train(n, data, data, 15)
 
 	for _, d := range data {
 		assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)

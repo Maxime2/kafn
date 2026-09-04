@@ -39,14 +39,15 @@ func Test_Forward(t *testing.T) {
 		}
 	}
 
-	expected := []float64{
-		3.5, 3.5, 3.5,
-	}
-
 	t.Logf("%v", n.Check())
 
-	for j, n := range n.Layers[1].Neurons {
-		assert.InEpsilon(t, expected[j], Float64(n.Sum), 1e-12)
+	// With random initialization of tabulated synapses, the output is not deterministic.
+	// The Y values are initialized between 0.3 and 0.7.
+	// A neuron in layer 1 has (2 * Inputs + 1) = 7 input synapses.
+	// Therefore, its sum should be between (7 * 0.3) = 2.1 and (7 * 0.7) = 4.9.
+	// We check that the sum is within this range by asserting it's in the delta of the midpoint.
+	for _, neuron := range n.Layers[1].Neurons {
+		assert.InDelta(t, 3.5, Float64(neuron.Sum), 1.4, "Neuron sum is out of expected range")
 	}
 
 	err = n.Forward([]Deepfloat64{DF(0.1), DF(0.2)})
@@ -93,6 +94,7 @@ func Test_Save_Load(t *testing.T) {
 }
 
 func Test_NumWeights(t *testing.T) {
+	Rand.Seed(0) // Seed for deterministic random synapse initialization.
 	n := NewNeural(&Config{Inputs: 5, Outputs: 3, Degree: 1})
 	// Layer 0 (Analytic): (Degree+1) * Inputs * Neurons
 	// Neurons in L0 = 2*Inputs+1 = 2*5+1 = 11
@@ -100,12 +102,10 @@ func Test_NumWeights(t *testing.T) {
 	weightsL0 := (1 + 1) * 5 * (2*5 + 1)
 
 	// Layer 1 (Tabulated): PointsPerSynapse * NeuronsL0 * NeuronsL1
-	// NewSynapseTabulated creates 2 points via LoadConstant. The subsequent
-	// AddPoint in layer.Connect adds a point that lies on the same horizontal line,
-	// so it is optimized away by the tabulated-function library as it's redundant
-	// for a linear (order 1) function. Thus, there are 2 points per synapse.
-	// Weights in L1 = 2 * 11 * 3 = 66
-	weightsL1 := 2 * (2*5 + 1) * 3
+	// NewSynapseTabulated now creates 100 random points. The subsequent AddPoint in
+	// layer.Connect adds one more, for a total of 101 points per synapse.
+	// Weights in L1 = 101 * 11 * 3 = 3333
+	weightsL1 := (100 + 1) * (2*5 + 1) * 3
 	assert.Equal(t, weightsL0+weightsL1, n.NumWeights())
 }
 
