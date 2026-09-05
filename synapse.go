@@ -68,7 +68,7 @@ func NewSynapseTabulated(c *Config, up *Neuron, tag string) *SynapseTabulated {
 	}
 	// Initialize with 100 random points.
 	for i := 0; i < 100; i++ {
-		x := Rand.Float64() * float64(c.Inputs)
+		x := Rand.Float64() * float64(c.sum_of_weights)
 		y := 0.3 + Rand.Float64()*0.4
 		syn.AddPoint(DF(x), DF(y), 0)
 	}

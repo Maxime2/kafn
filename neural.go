@@ -42,6 +42,8 @@ type Config struct {
 	Smooth bool
 	// TrapolationLinear by default
 	Trapolation tabulatedfunction.Trapolation
+	// Sum of weights
+	sum_of_weights Deepfloat64
 }
 
 // NewNeural returns a new neural network

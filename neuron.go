@@ -1,6 +1,7 @@
 package kafn
 
 import (
+	"log"
 	"math"
 
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
@@ -34,6 +35,8 @@ func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
 		val := Float64(preliminarySum)
 		if !math.IsNaN(val) && !math.IsInf(val, 0) {
 			n.Sum = preliminarySum
+		} else {
+			log.Printf("WARN: Invalid number (NaN/Inf) detected during neuron sum calculation. Synapse Out: %v", s.GetOut())
 		}
 	}
 	if n.Sum < n.MinSum {
