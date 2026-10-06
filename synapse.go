@@ -170,7 +170,7 @@ func (s *SynapseTabulated) Trapolate(x Deepfloat64, trapolation tabulatedfunctio
 
 // GetPoint() returns n-th point in Tabulated activation
 func (s *SynapseTabulated) GetPoint(i int) (Deepfloat64, Deepfloat64) {
-	return DF(s.direct.P[i].X), DF(s.direct.P[i].Y)
+	return DF(s.direct.X[i]), DF(s.direct.Y[i])
 }
 
 func (s *SynapseTabulated) DrawPS(path string) {
