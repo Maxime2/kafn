@@ -83,13 +83,6 @@ func (l *Layer) Connect(next *Layer, c *Config) {
 	}
 }
 
-func (l *Layer) NumIns() (num int) {
-	for _, neuron := range l.Neurons {
-		num += len(neuron.In)
-	}
-	return
-}
-
 func (l *Layer) String() string {
 	// The original implementation `return fmt.Sprintf("%+v", l)` causes infinite recursion.
 	return fmt.Sprintf("Layer(Number: %d, SynapseType: %v, Neurons: %d)", l.Number, l.S, len(l.Neurons))

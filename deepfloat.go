@@ -31,10 +31,6 @@ func Div(a, b Deepfloat64) Deepfloat64 {
 	return a / b
 }
 
-func Copy(a Deepfloat64) Deepfloat64 {
-	return a
-}
-
 func Float64(a Deepfloat64) float64 {
 	return float64(a)
 }
