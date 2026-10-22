@@ -2,7 +2,6 @@ package kafn
 
 import (
 	"fmt"
-	"math"
 
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
@@ -16,33 +15,6 @@ const (
 	SynapseTypeTabulated SynapseType = 1
 )
 
-// Synapse is an edge between neurons
-type Synapse interface {
-	Refire()
-	Fire(Deepfloat64)
-	FireT(Deepfloat64, tabulatedfunction.Trapolation)
-	SetTag(string)
-	GetTag() string
-	SetWeight(int, Deepfloat64)
-	GetWeight(int) Deepfloat64
-	String() string
-	WeightsString() string
-	GetIn() Deepfloat64
-	GetOut() Deepfloat64
-	Len() int
-	SetWeights([]Deepfloat64)
-	GetWeights() []Deepfloat64
-	GetUp() *Neuron
-	Epoch(uint32)
-	AddPoint(x, y Deepfloat64, it uint32)
-	Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64
-	GetPoint(i int) (Deepfloat64, Deepfloat64)
-	DrawPS(path string)
-	Smooth()
-	Polinate(Synapse)
-	Clear()
-	Expand(n int)
-}
 
 type SynapseTabulated struct {
 	direct  *tabulatedfunction.TabulatedFunction
@@ -107,14 +79,6 @@ func (s *SynapseTabulated) GetTag() string {
 	return s.Tag
 }
 
-func (s *SynapseTabulated) SetWeight(k int, weight Deepfloat64) {
-
-}
-
-func (s *SynapseTabulated) GetWeight(k int) Deepfloat64 {
-	return DF(math.NaN())
-}
-
 func (s *SynapseTabulated) Epoch(epoch uint32) {
 	s.direct.Epoch(epoch)
 }
@@ -133,11 +97,6 @@ func (s *SynapseTabulated) GetOut() Deepfloat64 {
 
 func (s *SynapseTabulated) Len() int {
 	return s.direct.GetNdots()
-}
-
-func (s *SynapseTabulated) SetWeights(w []Deepfloat64) {}
-func (s *SynapseTabulated) GetWeights() []Deepfloat64 {
-	return []Deepfloat64{}
 }
 
 func (s *SynapseTabulated) GetUp() *Neuron {
@@ -179,7 +138,7 @@ func (s *SynapseTabulated) FromDump(d *tabulatedfunction.Dump) {
 	s.direct.FromDump(d)
 }
 
-func (s *SynapseTabulated) Polinate(m Synapse) {
+func (s *SynapseTabulated) Polinate(m *SynapseTabulated) {
 	for i := 0; i < m.Len(); i++ {
 		X, Y := m.GetPoint(i)
 		s.AddPoint(X, Y, 0 /* epoch */)
@@ -283,24 +242,3 @@ func (s *SynapseAnalytic) GetWeights() []Deepfloat64 {
 func (s *SynapseAnalytic) GetUp() *Neuron {
 	return s.Up
 }
-
-func (s *SynapseAnalytic) Epoch(uint32) {}
-
-func (s *SynapseAnalytic) Clear() {}
-
-func (s *SynapseAnalytic) AddPoint(x, y Deepfloat64, it uint32) {}
-
-func (s *SynapseAnalytic) Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64 {
-	return DF(math.NaN())
-}
-
-// GetPoint() returns (0,0,1)
-func (s *SynapseAnalytic) GetPoint(i int) (Deepfloat64, Deepfloat64) { return DF(0), DF(0) }
-
-func (s *SynapseAnalytic) DrawPS(path string) {}
-
-func (s *SynapseAnalytic) Smooth() {}
-
-func (s *SynapseAnalytic) Polinate(m Synapse) {}
-
-func (s *SynapseAnalytic) Expand(n int) {}

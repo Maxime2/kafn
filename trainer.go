@@ -142,7 +142,7 @@ func (t *OnlineTrainer) epoch(neural *Neural, epoch uint32) {
 		l := neural.Layers[i]
 		for _, n := range l.Neurons {
 			if l.S == SynapseTypeTabulated {
-				for _, s := range n.In {
+				for _, s := range n.TabulatedIn {
 					s.Epoch(epoch)
 				}
 			}
@@ -156,18 +156,18 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 	l := neural.Layers[outLayerIdx]
 
 	for i, n := range l.Neurons {
-		numIn := len(n.In)
+		numIn := len(n.TabulatedIn)
 		if numIn == 0 { // A neuron with no inputs cannot learn.
 			continue
 		}
 
 		remainingError := errors[i]
 
-		for idx, synapse := range n.In {
+		for idx, synapse := range n.TabulatedIn {
 			remainingSynapses := numIn - idx
 			gap := Div(remainingError, DF(float64(remainingSynapses)))
 
-			currentOut := synapse.GetOut()
+			currentOut := synapse.Out
 			newOut := Add(currentOut, gap)
 
 			// If the gap is too small to change the float64 value, force a change
@@ -182,7 +182,7 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 			if newOut == 0 {
 				newOut = DF(math.Nextafter(0.0, math.Inf(1)))
 			}
-			synapse.AddPoint(synapse.GetIn(), newOut, neural.Config.Epoch)
+			synapse.AddPoint(synapse.In, newOut, neural.Config.Epoch)
 
 			actualAppliedGap := Sub(newOut, currentOut)
 			remainingError = Sub(remainingError, actualAppliedGap)

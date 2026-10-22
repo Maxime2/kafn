@@ -33,7 +33,7 @@ func Test_Forward(t *testing.T) {
 
 	// Verify that analytic synapses in Layer 0 were initialized with non-negative weights A
 	for _, neuron := range n.Layers[0].Neurons {
-		for _, synapse := range neuron.In {
+		for _, synapse := range neuron.AnalyticIn {
 			// For degree 1, the weight at index 1 corresponds to A (the slope)
 			A := synapse.GetWeight(1)
 			assert.GreaterOrEqual(t, Float64(A), 0.0, "Weight A should be non-negative")
@@ -146,7 +146,7 @@ func Test_Neural_Polinate(t *testing.T) {
 		// Corner case: with only 1 output neuron, no cross-neuron pollination should occur
 		Rand.Seed(0)
 		n := NewNeural(&Config{Inputs: 2, Outputs: 1})
-		synapse := n.Layers[1].Neurons[0].In[0]
+		synapse := n.Layers[1].Neurons[0].TabulatedIn[0]
 		lenBefore := synapse.Len()
 
 		n.Polinate()
@@ -160,8 +160,8 @@ func Test_Neural_Polinate(t *testing.T) {
 		n := NewNeural(&Config{Inputs: 1, Outputs: 2})
 		layer1 := n.Layers[1]
 
-		syn0 := layer1.Neurons[0].In[0]
-		syn1 := layer1.Neurons[1].In[0]
+		syn0 := layer1.Neurons[0].TabulatedIn[0]
+		syn1 := layer1.Neurons[1].TabulatedIn[0]
 		initialLen0 := syn0.Len()
 		initialLen1 := syn1.Len()
 
@@ -285,7 +285,7 @@ func Test_Neural_Expand(t *testing.T) {
 	t.Run("StandardExpansion", func(t *testing.T) {
 		Rand.Seed(0)
 		n := NewNeural(&Config{Inputs: 1, Outputs: 1})
-		synapse := n.Layers[1].Neurons[0].In[0]
+		synapse := n.Layers[1].Neurons[0].TabulatedIn[0]
 		lenBefore := synapse.Len()
 
 		n.Expand(2)

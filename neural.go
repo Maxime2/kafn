@@ -87,14 +87,32 @@ func initializeLayers(c *Config) []*Layer {
 }
 
 func (n *Neural) fire() {
-	for _, l := range n.Layers {
-		l.Fire()
+	for _, neuron := range n.Layers[0].Neurons {
+		neuron.calculateNeuronOutput()
+	}
+	if len(n.Layers) > 1 {
+		l0 := n.Layers[0]
+		for _, neuron := range n.Layers[1].Neurons {
+			for i, s := range neuron.TabulatedIn {
+				s.Fire(l0.Neurons[i].Sum)
+			}
+			neuron.calculateNeuronOutput()
+		}
 	}
 }
 
 func (n *Neural) fireT(trapolation tabulatedfunction.Trapolation) {
-	for _, l := range n.Layers {
-		l.FireT(trapolation)
+	for _, neuron := range n.Layers[0].Neurons {
+		neuron.calculateNeuronOutput()
+	}
+	if len(n.Layers) > 1 {
+		l0 := n.Layers[0]
+		for _, neuron := range n.Layers[1].Neurons {
+			for i, s := range neuron.TabulatedIn {
+				s.FireT(l0.Neurons[i].Sum, trapolation)
+			}
+			neuron.calculateNeuronOutput()
+		}
 	}
 }
 
@@ -106,7 +124,7 @@ func (n *Neural) Forward(input []Deepfloat64) error {
 	}
 	for _, neuron := range n.Layers[0].Neurons {
 		for i := range input {
-			neuron.In[i].Fire(input[i])
+			neuron.AnalyticIn[i].Fire(input[i])
 		}
 	}
 
@@ -122,7 +140,7 @@ func (n *Neural) ForwardT(input []Deepfloat64, trapolation tabulatedfunction.Tra
 	}
 	for _, neuron := range n.Layers[0].Neurons {
 		for i := range input {
-			neuron.In[i].FireT(input[i], trapolation)
+			neuron.AnalyticIn[i].FireT(input[i], trapolation)
 		}
 	}
 
@@ -184,7 +202,10 @@ func (n *Neural) Trapolate(input []Deepfloat64, trapolation tabulatedfunction.Tr
 func (n *Neural) NumWeights() (num int) {
 	for _, l := range n.Layers {
 		for _, neuron := range l.Neurons {
-			for _, synapse := range neuron.In {
+			for _, synapse := range neuron.AnalyticIn {
+				num += synapse.Len()
+			}
+			for _, synapse := range neuron.TabulatedIn {
 				num += synapse.Len()
 			}
 		}
@@ -215,7 +236,7 @@ func TotalError(E []Deepfloat64) Deepfloat64 {
 func (n *Neural) DrawPS(path_prefix string) {
 	for _, l := range n.Layers {
 		for y, neuron := range l.Neurons {
-			for x, in := range neuron.In {
+			for x, in := range neuron.TabulatedIn {
 				path := fmt.Sprintf("%sL-%v-N-%v-In-%v.ps", path_prefix, l.Number, y, x)
 				in.DrawPS(path)
 			}
@@ -232,7 +253,7 @@ func (n *Neural) Smooth() {
 		}
 
 		for _, neuron := range l.Neurons {
-			for _, in := range neuron.In {
+			for _, in := range neuron.TabulatedIn {
 				in.Smooth()
 			}
 		}
@@ -245,12 +266,12 @@ func (n *Neural) Polinate() {
 	}
 	l := n.Layers[1] // Target the top layer explicitly
 	for y, neuron := range l.Neurons {
-		for x, in := range neuron.In {
+		for x, in := range neuron.TabulatedIn {
 			for t, p := range l.Neurons {
 				if t <= y {
 					continue
 				}
-				in.Polinate(p.In[x])
+				in.Polinate(p.TabulatedIn[x])
 			}
 		}
 	}
@@ -262,7 +283,7 @@ func (n *Neural) Expand(steps int) {
 	}
 	l := n.Layers[1] // Target the top layer explicitly
 	for _, neuron := range l.Neurons {
-		for _, s := range neuron.In {
+		for _, s := range neuron.TabulatedIn {
 			s.Expand(steps)
 		}
 	}

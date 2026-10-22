@@ -35,7 +35,7 @@ func (n *Neural) ApplyWeights(weights [][][][]Deepfloat64) {
 				if j >= len(weights[i]) || weights[i][j] == nil {
 					continue
 				}
-				for k, in := range neuron.In {
+				for k, in := range neuron.AnalyticIn {
 					if k < len(weights[i][j]) {
 						in.SetWeights(weights[i][j][k])
 					}
@@ -52,8 +52,8 @@ func (n *Neural) Weights() [][][][]Deepfloat64 {
 		if l.S != SynapseTypeTabulated {
 			weights[i] = make([][][]Deepfloat64, len(l.Neurons))
 			for j, neuron := range l.Neurons {
-				weights[i][j] = make([][]Deepfloat64, len(neuron.In))
-				for k, in := range neuron.In {
+				weights[i][j] = make([][]Deepfloat64, len(neuron.AnalyticIn))
+				for k, in := range neuron.AnalyticIn {
 					weights[i][j][k] = in.GetWeights()
 				}
 			}
@@ -67,7 +67,7 @@ func (n *Neural) ApplySynapses(points [][]Point) {
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
-				for _, s := range neuron.In {
+				for _, s := range neuron.TabulatedIn {
 					if current >= len(points) {
 						current++
 						continue
@@ -89,7 +89,7 @@ func (n *Neural) Synapses() [][]Point {
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
-				for _, s := range neuron.In {
+				for _, s := range neuron.TabulatedIn {
 					points := s.Len()
 					acts := make([]Point, points)
 					for i := 0; i < points; i++ {
@@ -167,7 +167,7 @@ func (n *Neural) Save(path string) error {
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
-				for _, in := range neuron.In {
+				for _, in := range neuron.AnalyticIn {
 					if err := enc.Encode(in.GetWeights()); err != nil {
 						return err
 					}
@@ -186,11 +186,9 @@ func (n *Neural) Save(path string) error {
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
-				for _, s := range neuron.In {
-					if tab, ok := s.(*SynapseTabulated); ok {
-						if err := enc.Encode(tab.Dump()); err != nil {
-							return err
-						}
+				for _, s := range neuron.TabulatedIn {
+					if err := enc.Encode(s.Dump()); err != nil {
+						return err
 					}
 				}
 				if err := enc.Encode(&neuron.MinSum); err != nil {
@@ -235,7 +233,7 @@ func Load(path string) (*Neural, error) {
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
-				for _, in := range neuron.In {
+				for _, in := range neuron.AnalyticIn {
 					var w []Deepfloat64
 					if err := dec.Decode(&w); err != nil {
 						return nil, err
@@ -256,14 +254,12 @@ func Load(path string) (*Neural, error) {
 	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
-				for _, s := range neuron.In {
-					if tab, ok := s.(*SynapseTabulated); ok {
-						var dump tabulatedfunction.Dump
-						if err := dec.Decode(&dump); err != nil {
-							return nil, err
-						}
-						tab.FromDump(&dump)
+				for _, s := range neuron.TabulatedIn {
+					var dump tabulatedfunction.Dump
+					if err := dec.Decode(&dump); err != nil {
+						return nil, err
 					}
+					s.FromDump(&dump)
 				}
 				if err := dec.Decode(&neuron.MinSum); err != nil {
 					return nil, err
@@ -289,7 +285,11 @@ func (n *Neural) Dot(path string) error {
 
 	for l, lr := range n.Layers {
 		for neuronIdx, nr := range lr.Neurons {
-			for _, in := range nr.In {
+			for _, in := range nr.AnalyticIn {
+				fmt.Fprintf(f, "\"%s\" -> \"L:%d N:%d\"[label=\"%v\"]\n",
+					in.GetTag(), l, neuronIdx, in.WeightsString())
+			}
+			for _, in := range nr.TabulatedIn {
 				fmt.Fprintf(f, "\"%s\" -> \"L:%d N:%d\"[label=\"%v\"]\n",
 					in.GetTag(), l, neuronIdx, in.WeightsString())
 			}
@@ -313,7 +313,10 @@ func (n *Neural) Net(path string) error {
 		fmt.Fprintf(f, "L: %d\n", l)
 		for neuronIdx, nr := range lr.Neurons {
 			fmt.Fprintf(f, "  N: %d;  Sum: %v; Ideal: %v\n", neuronIdx, nr.Sum, nr.Ideal)
-			for _, in := range nr.In {
+			for _, in := range nr.AnalyticIn {
+				fmt.Fprintf(f, " [%v %v]", in.GetIn(), in.GetOut())
+			}
+			for _, in := range nr.TabulatedIn {
 				fmt.Fprintf(f, " [%v %v]", in.GetIn(), in.GetOut())
 			}
 			fmt.Fprintf(f, "\n")

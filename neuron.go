@@ -3,8 +3,6 @@ package kafn
 import (
 	"log"
 	"math"
-
-	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
 
 // Neuron is a neural network node
@@ -13,8 +11,8 @@ import (
 // Forward or Predict on the parent Neural network will cause data races
 // and corrupted activation states because transient values are stored directly in the fields.
 type Neuron struct {
-	In             []Synapse
-	Out            []Synapse
+	AnalyticIn     []*SynapseAnalytic
+	TabulatedIn    []*SynapseTabulated
 	Ideal          Deepfloat64
 	Sum            Deepfloat64
 	MinSum, MaxSum Deepfloat64
@@ -30,8 +28,11 @@ func NewNeuron() *Neuron {
 
 func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
 	n.Sum = DF(0)
-	for _, s := range n.In {
-		n.Sum = Add(n.Sum, s.GetOut())
+	for _, s := range n.AnalyticIn {
+		n.Sum = Add(n.Sum, s.Out)
+	}
+	for _, s := range n.TabulatedIn {
+		n.Sum = Add(n.Sum, s.Out)
 	}
 	val := Float64(n.Sum)
 	if math.IsNaN(val) || math.IsInf(val, 0) {
@@ -45,20 +46,4 @@ func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
 		n.MaxSum = n.Sum
 	}
 	return n.Sum
-}
-
-func (n *Neuron) fire() {
-	nVal := n.calculateNeuronOutput()
-
-	for _, s := range n.Out {
-		s.Fire(nVal)
-	}
-}
-
-func (n *Neuron) fireT(trapolation tabulatedfunction.Trapolation) {
-	nVal := n.calculateNeuronOutput()
-
-	for _, s := range n.Out {
-		s.FireT(nVal, trapolation)
-	}
 }

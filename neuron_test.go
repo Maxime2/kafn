@@ -50,23 +50,9 @@ func Test_SynapseAnalytic_Full(t *testing.T) {
 	syn.FireT(DF(3.0), tabulatedfunction.TrapolationLinear)
 	assert.Equal(t, DF(7.0), syn.GetOut())
 
-	// String methods and dummy operations
+	// String methods
 	assert.NotEmpty(t, syn.String())
 	assert.NotEmpty(t, syn.WeightsString())
-	assert.Equal(t, DF(0), syn.Trapolate(DF(1), tabulatedfunction.TrapolationLinear))
-	x, y := syn.GetPoint(0)
-	assert.Equal(t, DF(0), x)
-	assert.Equal(t, DF(0), y)
-
-	assert.NotPanics(t, func() {
-		syn.Epoch(1)
-		syn.Clear()
-		syn.AddPoint(DF(0), DF(0), 0)
-		syn.DrawPS("")
-		syn.Smooth()
-		syn.Polinate(syn)
-		syn.Expand(1)
-	})
 }
 
 func Test_SynapseTabulated_Full(t *testing.T) {
@@ -84,12 +70,6 @@ func Test_SynapseTabulated_Full(t *testing.T) {
 	assert.NotEmpty(t, syn.String())
 	assert.Equal(t, "[tabulated]", syn.WeightsString())
 
-	// Weights and dummy ops
-	syn.SetWeight(0, DF(1.0))
-	assert.Equal(t, DF(0), syn.GetWeight(0))
-	syn.SetWeights([]Deepfloat64{})
-	assert.Empty(t, syn.GetWeights())
-
 	// Fire and FireT
 	syn.Fire(DF(0.5))
 	syn.FireT(DF(0.5), tabulatedfunction.TrapolationLinear)
@@ -105,8 +85,8 @@ func Test_Neuron_FireT_And_NanTolerance(t *testing.T) {
 	// Synapse returning NaN should be sanitized after summation with a log warning
 	badSynapse := &SynapseAnalytic{Out: Deepfloat64(math.NaN())}
 	goodSynapse := &SynapseAnalytic{Out: DF(5.0)}
-	n.In = []Synapse{badSynapse, goodSynapse}
+	n.AnalyticIn = []*SynapseAnalytic{badSynapse, goodSynapse}
 
-	n.fireT(tabulatedfunction.TrapolationLinear)
+	n.calculateNeuronOutput()
 	assert.Equal(t, DF(0.0), n.Sum)
 }

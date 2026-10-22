@@ -3,8 +3,6 @@ package kafn
 import (
 	"fmt"
 	"math"
-
-	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
 
 // Layer is a set of neurons and corresponding activation
@@ -33,18 +31,6 @@ func NewLayer(l, n int, synapse SynapseType) *Layer {
 	}
 }
 
-func (l *Layer) Fire() {
-	for _, neuron := range l.Neurons {
-		neuron.fire()
-	}
-}
-
-func (l *Layer) FireT(trapolation tabulatedfunction.Trapolation) {
-	for _, neuron := range l.Neurons {
-		neuron.fireT(trapolation)
-	}
-}
-
 // CreateInputSynapses create input synapses for the bottom layer
 func (l *Layer) CreateInputSynapses(c *Config) {
 	if c.Inputs <= 0 {
@@ -53,15 +39,15 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 	wA := DF(0)
 	c.sum_of_weights = wA
 	for _, neuron := range l.Neurons {
-		neuron.In = make([]Synapse, c.Inputs)
-		for i := range neuron.In {
+		neuron.AnalyticIn = make([]*SynapseAnalytic, c.Inputs)
+		for i := range neuron.AnalyticIn {
 			// Nested logarithms (iterated logarithm) provide even slower growth.
 			A := 0.5 * math.Log(3.0+math.Log(3.0+math.Log(3.0+float64(i+1)/float64(c.Inputs)))) / float64(2*c.Inputs+1)
 			tag := fmt.Sprintf("In:%d", i)
 			if i < len(c.InputTags) {
 				tag = c.InputTags[i]
 			}
-			neuron.In[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, tag)
+			neuron.AnalyticIn[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, tag)
 			c.sum_of_weights = Add(c.sum_of_weights, wA)
 			c.sum_of_weights = Add(c.sum_of_weights, DF(A))
 			wA = Add(wA, DF(A+Eps))
@@ -74,11 +60,11 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 // func (l *Layer) Connect(next *Layer, degree int, weight WeightType) {
 func (l *Layer) Connect(next *Layer, c *Config) {
 	for _, neuron := range next.Neurons {
+		neuron.TabulatedIn = make([]*SynapseTabulated, len(l.Neurons))
 		for i := range l.Neurons {
 			syn := NewSynapseTabulated(c, neuron, fmt.Sprintf("L:%d N:%d", l.Number, i))
 			syn.AddPoint(0.5, 0.5, 0)
-			l.Neurons[i].Out = append(l.Neurons[i].Out, syn)
-			neuron.In = append(neuron.In, syn)
+			neuron.TabulatedIn[i] = syn
 		}
 	}
 }
