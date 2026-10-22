@@ -485,3 +485,23 @@ func Test_RHW_tabulated(t *testing.T) {
 	n.SaveReadable("rhw-tabled-test-post.neural")
 
 }
+
+func Test_Trainer_OptionsAndEdgeCases(t *testing.T) {
+	Rand.Seed(0)
+	n := NewNeural(&Config{Inputs: 1, Outputs: 1, Smooth: true})
+
+	// Default precision = 4 when 0 is passed
+	trainer := NewTrainer(0, 0, 0)
+	trainer.SetPrefix("test-prefix")
+
+	// Early return on empty examples
+	assert.NotPanics(t, func() {
+		trainer.Train(n, Examples{}, nil, 10)
+	})
+
+	// Train with Smooth = true
+	ex := Examples{{Input: []Deepfloat64{DF(0.1)}, Response: []Deepfloat64{DF(0.2)}}}
+	assert.NotPanics(t, func() {
+		trainer.Train(n, ex, ex, 1)
+	})
+}

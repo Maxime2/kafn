@@ -10,10 +10,6 @@ import (
 
 // Smallest number
 const Eps = 1e-16
-const Leps = 1e-20
-
-// Minimal number of iterations
-const MinIterations = 5
 
 // Neural is a neural network
 type Neural struct {

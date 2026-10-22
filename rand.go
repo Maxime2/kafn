@@ -37,12 +37,6 @@ func (r *KafnRand) Perm(n int) []int {
 	return r.r.Perm(n)
 }
 
-func (r *KafnRand) NormFloat64() float64 {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.r.NormFloat64()
-}
-
 func NewRand() *KafnRand {
 	return &KafnRand{
 		r: rand.New(rand.NewSource(time.Now().UnixNano())),

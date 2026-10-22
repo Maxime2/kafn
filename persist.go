@@ -17,11 +17,6 @@ type Point struct {
 	X, Y Deepfloat64
 }
 
-func init() {
-	// tabulatedfunction.Trapolation is a concrete type (int alias),
-	// so gob registration is not required for serialization.
-}
-
 // Dump is a neural network dump
 type Dump struct {
 	Config   *Config

@@ -3,7 +3,6 @@ package kafn
 import (
 	"math"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/theothertomelliott/acyclic"
@@ -18,9 +17,8 @@ type Trainer interface {
 // OnlineTrainer is a basic, online network trainer
 type OnlineTrainer struct {
 	*internal
-	printer     *StatsPrinter
-	verbosity   int
-	parallelism int
+	printer   *StatsPrinter
+	verbosity int
 }
 
 // NewTrainer creates a new trainer
@@ -28,13 +26,9 @@ func NewTrainer(precision, verbosity, parallelism int) *OnlineTrainer {
 	if precision == 0 {
 		precision = 4
 	}
-	if parallelism == 0 {
-		parallelism = runtime.NumCPU()
-	}
 	return &OnlineTrainer{
-		printer:     NewStatsPrinter(precision),
-		verbosity:   verbosity,
-		parallelism: parallelism,
+		printer:   NewStatsPrinter(precision),
+		verbosity: verbosity,
 	}
 }
 

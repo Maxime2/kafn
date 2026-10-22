@@ -21,11 +21,9 @@ type Synapse interface {
 	Refire()
 	Fire(Deepfloat64)
 	FireT(Deepfloat64, tabulatedfunction.Trapolation)
-	FireDerivative() Deepfloat64
 	SetTag(string)
 	GetTag() string
 	SetWeight(int, Deepfloat64)
-	GetGradient(Deepfloat64, int) Deepfloat64
 	GetWeight(int) Deepfloat64
 	String() string
 	WeightsString() string
@@ -48,7 +46,6 @@ type Synapse interface {
 
 type SynapseTabulated struct {
 	direct  *tabulatedfunction.TabulatedFunction
-	changed bool
 	Up      *Neuron
 	In, Out Deepfloat64
 	Tag     string
@@ -102,10 +99,6 @@ func (s *SynapseTabulated) FireT(value Deepfloat64, trapolation tabulatedfunctio
 	s.RefireT(trapolation)
 }
 
-func (s *SynapseTabulated) FireDerivative() Deepfloat64 {
-	return DF(0)
-}
-
 func (s *SynapseTabulated) SetTag(tag string) {
 	s.Tag = tag
 }
@@ -116,10 +109,6 @@ func (s *SynapseTabulated) GetTag() string {
 
 func (s *SynapseTabulated) SetWeight(k int, weight Deepfloat64) {
 
-}
-
-func (s *SynapseTabulated) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return Mul(D_E_x, DF(math.Pow(float64(s.In), float64(k))))
 }
 
 func (s *SynapseTabulated) GetWeight(k int) Deepfloat64 {
@@ -161,7 +150,6 @@ func (s *SynapseTabulated) AddPoint(x, y Deepfloat64, it uint32) {
 		valY = DF(0)
 	}
 	s.direct.AddPoint(float64(x), float64(valY), it)
-	s.changed = true
 }
 
 func (s *SynapseTabulated) Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64 {
@@ -257,16 +245,6 @@ func (s *SynapseAnalytic) FireT(value Deepfloat64, trapolation tabulatedfunction
 	s.Refire()
 }
 
-func (s *SynapseAnalytic) FireDerivative() Deepfloat64 {
-	mul := DF(1)
-	res := DF(0)
-	for k := 1; k < len(s.Weights); k++ {
-		res = Add(res, Mul(DF(float64(k)), Mul(mul, s.Weights[k])))
-		mul = Mul(mul, s.In)
-	}
-	return res
-}
-
 func (s *SynapseAnalytic) SetTag(tag string) {
 	s.Tag = tag
 }
@@ -276,10 +254,6 @@ func (s *SynapseAnalytic) GetTag() string {
 
 func (s *SynapseAnalytic) SetWeight(k int, weight Deepfloat64) {
 	s.Weights[k] = weight
-}
-
-func (s *SynapseAnalytic) GetGradient(D_E_x Deepfloat64, k int) Deepfloat64 {
-	return Mul(D_E_x, DF(math.Pow(float64(s.In), float64(k))))
 }
 
 func (s *SynapseAnalytic) GetWeight(k int) Deepfloat64 {
