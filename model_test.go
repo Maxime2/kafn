@@ -14,6 +14,10 @@ func Test_SplitSize(t *testing.T) {
 	for _, batch := range batches {
 		assert.Equal(t, 2, len(batch))
 	}
+
+	assert.Nil(t, e.SplitSize(0))
+	assert.Nil(t, e.SplitSize(-1))
+	assert.Nil(t, Examples{}.SplitSize(2))
 }
 
 func Test_SplitN(t *testing.T) {
@@ -24,6 +28,10 @@ func Test_SplitN(t *testing.T) {
 	assert.Len(t, partitions[0], 4)
 	assert.Len(t, partitions[1], 3)
 	assert.Len(t, partitions[2], 3)
+
+	assert.Nil(t, e.SplitN(0))
+	assert.Nil(t, e.SplitN(-1))
+	assert.Nil(t, Examples{}.SplitN(2))
 }
 
 func Test_Split(t *testing.T) {

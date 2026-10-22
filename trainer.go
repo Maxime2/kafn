@@ -33,7 +33,9 @@ func NewTrainer(precision, verbosity, parallelism int) *OnlineTrainer {
 }
 
 type internal struct {
-	E [][]Deepfloat64
+	E      [][]Deepfloat64
+	deltas []Deepfloat64
+	loss   Loss
 }
 
 func newE(layers []*Layer) [][]Deepfloat64 {
@@ -44,9 +46,15 @@ func newE(layers []*Layer) [][]Deepfloat64 {
 	return E
 }
 
-func newTraining(layers []*Layer) *internal {
+func newTraining(layers []*Layer, lossType LossType) *internal {
+	var numOut int
+	if len(layers) > 0 {
+		numOut = len(layers[len(layers)-1].Neurons)
+	}
 	return &internal{
-		E: newE(layers),
+		E:      newE(layers),
+		deltas: make([]Deepfloat64, numOut),
+		loss:   GetLoss(lossType),
 	}
 }
 
@@ -61,7 +69,7 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 		return
 	}
 
-	t.internal = newTraining(n.Layers)
+	t.internal = newTraining(n.Layers, n.Config.Loss)
 
 	t.printer.Init(n)
 
@@ -73,55 +81,59 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 
 	for i := uint32(1); i <= iterations; i++ {
 		n.Config.Epoch++
-		for k := range t.E {
-			for j := range t.E[k] {
-				t.E[k][j] = DF(0)
+		isReporting := (t.verbosity > 0 && i%uint32(t.verbosity) == 0 && len(validation) > 0) || i == iterations
+		if isReporting {
+			for k := range t.E {
+				for j := range t.E[k] {
+					t.E[k][j] = DF(0)
+				}
 			}
 		}
 		for j := 0; j < len(examples); j++ {
-			t.learn(n, examples[j])
+			t.learn(n, examples[j], isReporting)
 		}
-		for e := range t.E {
-			for j := range t.E[e] {
-				t.E[e][j] = Div(t.E[e][j], DF(float64(len(examples))))
+		if isReporting {
+			for e := range t.E {
+				for j := range t.E[e] {
+					t.E[e][j] = Div(t.E[e][j], DF(float64(len(examples))))
+				}
 			}
-		}
-		if t.verbosity > 0 && i%uint32(t.verbosity) == 0 && len(validation) > 0 {
-			n.TotalError = TotalError(t.E[len(n.Layers)-1])
-			t.printer.PrintProgress(n, validation, time.Since(ts), i)
+			if t.verbosity > 0 && i%uint32(t.verbosity) == 0 && len(validation) > 0 {
+				n.TotalError = TotalError(t.E[len(n.Layers)-1])
+				t.printer.PrintProgress(n, validation, time.Since(ts), i)
+			}
 		}
 		t.epoch(n, uint32(n.Config.Epoch))
 	}
 	n.TotalError = TotalError(t.E[len(n.Layers)-1])
 }
 
-func (t *OnlineTrainer) learn(n *Neural, e Example) {
+func (t *OnlineTrainer) learn(n *Neural, e Example, recordLoss bool) {
 	n.Forward(e.Input)
-	needsUpdate, errors := t.calculateDeltas(n, e.Response)
-	if needsUpdate {
-		t.update(n, errors)
+	if t.calculateDeltas(n, e.Response, recordLoss) {
+		t.update(n, t.deltas)
 	}
 }
 
-func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64) (bool, []Deepfloat64) {
-	loss := GetLoss(n.Config.Loss)
+func (t *OnlineTrainer) calculateDeltas(n *Neural, ideal []Deepfloat64, recordLoss bool) bool {
 	needsUpdate := false
 	outLayerIdx := len(n.Layers) - 1
 	outputLayer := n.Layers[outLayerIdx]
-	errors := make([]Deepfloat64, len(outputLayer.Neurons))
 
 	for i, neuron := range outputLayer.Neurons {
 		// Calculate the error gradient (ideal - estimate)
 		err := Sub(ideal[i], neuron.Sum)
-		errors[i] = err
+		t.deltas[i] = err
 		// Accumulate the squared error for reporting
-		t.E[outLayerIdx][i] = Add(t.E[outLayerIdx][i], loss.F(neuron.Sum, ideal[i]))
+		if recordLoss {
+			t.E[outLayerIdx][i] = Add(t.E[outLayerIdx][i], t.loss.F(neuron.Sum, ideal[i]))
+		}
 		neuron.Ideal = ideal[i]
 		if err != 0 {
 			needsUpdate = true
 		}
 	}
-	return needsUpdate, errors
+	return needsUpdate
 }
 
 // Set epoch for Tabulated Activations

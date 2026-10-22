@@ -47,7 +47,6 @@ const (
 type Loss interface {
 	F(estimate, ideal Deepfloat64) Deepfloat64
 	Cf(estimate, ideal [][]Deepfloat64) Deepfloat64
-	Df(estimate, ideal Deepfloat64) Deepfloat64
 }
 
 // CrossEntropy is CE loss
@@ -72,11 +71,6 @@ func (l CrossEntropy) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
 		sum = Sub(sum, ce)
 	}
 	return Div(sum, DF(float64(len(estimate))))
-}
-
-// Df is CE'(...)
-func (l CrossEntropy) Df(estimate, ideal Deepfloat64) Deepfloat64 {
-	return Sub(estimate, ideal)
 }
 
 // BinaryCrossEntropy is binary CE loss
@@ -105,11 +99,6 @@ func (l BinaryCrossEntropy) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
 	return Div(sum, DF(float64(len(estimate))))
 }
 
-// Df is CE'(...)
-func (l BinaryCrossEntropy) Df(estimate, ideal Deepfloat64) Deepfloat64 {
-	return Sub(estimate, ideal)
-}
-
 // MeanSquared in MSE loss
 type MeanSquared struct{}
 
@@ -129,9 +118,4 @@ func (l MeanSquared) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
 		}
 	}
 	return Div(sum, DF(float64(len(estimate)*len(estimate[0]))))
-}
-
-// Df is MSE'(...)
-func (l MeanSquared) Df(estimate, ideal Deepfloat64) Deepfloat64 {
-	return Sub(estimate, ideal)
 }

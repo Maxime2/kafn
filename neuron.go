@@ -31,13 +31,12 @@ func NewNeuron() *Neuron {
 func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
 	n.Sum = DF(0)
 	for _, s := range n.In {
-		preliminarySum := Add(n.Sum, s.GetOut())
-		val := Float64(preliminarySum)
-		if !math.IsNaN(val) && !math.IsInf(val, 0) {
-			n.Sum = preliminarySum
-		} else {
-			log.Printf("WARN: Invalid number (NaN/Inf) detected during neuron sum calculation. Synapse Out: %v", s.GetOut())
-		}
+		n.Sum = Add(n.Sum, s.GetOut())
+	}
+	val := Float64(n.Sum)
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		log.Printf("WARN: Invalid number (NaN/Inf) detected during neuron sum calculation. Resetting sum to 0.")
+		n.Sum = DF(0)
 	}
 	if n.Sum < n.MinSum {
 		n.MinSum = n.Sum

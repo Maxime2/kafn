@@ -45,9 +45,20 @@ func (p *StatsPrinter) PrintProgress(n *Neural, validation Examples, elapsed tim
 }
 
 func crossValidate(n *Neural, validation Examples) Deepfloat64 {
-	predictions, responses := make([][]Deepfloat64, len(validation)), make([][]Deepfloat64, len(validation))
+	if len(validation) == 0 || len(n.Layers) == 0 {
+		return DF(0)
+	}
+	numOut := len(n.Layers[len(n.Layers)-1].Neurons)
+	predictions := make([][]Deepfloat64, len(validation))
+	responses := make([][]Deepfloat64, len(validation))
+	predBuf := make([]Deepfloat64, len(validation)*numOut)
+
 	for i := 0; i < len(validation); i++ {
-		predictions[i] = n.Predict(validation[i].Input)
+		predSlice := predBuf[i*numOut : (i+1)*numOut]
+		if err := n.PredictInto(validation[i].Input, predSlice); err != nil {
+			panic(fmt.Sprintf("validation prediction failed: %v", err))
+		}
+		predictions[i] = predSlice
 		responses[i] = validation[i].Response
 	}
 

@@ -102,11 +102,11 @@ func Test_SynapseTabulated_Full(t *testing.T) {
 
 func Test_Neuron_FireT_And_NanTolerance(t *testing.T) {
 	n := NewNeuron()
-	// Synapse returning NaN should be skipped during sum calculation with a log warning
+	// Synapse returning NaN should be sanitized after summation with a log warning
 	badSynapse := &SynapseAnalytic{Out: Deepfloat64(math.NaN())}
 	goodSynapse := &SynapseAnalytic{Out: DF(5.0)}
 	n.In = []Synapse{badSynapse, goodSynapse}
 
 	n.fireT(tabulatedfunction.TrapolationLinear)
-	assert.Equal(t, DF(5.0), n.Sum)
+	assert.Equal(t, DF(0.0), n.Sum)
 }

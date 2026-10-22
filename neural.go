@@ -130,32 +130,52 @@ func (n *Neural) ForwardT(input []Deepfloat64, trapolation tabulatedfunction.Tra
 	return nil
 }
 
-// Predict computes a forward pass and returns a prediction
-func (n *Neural) Predict(input []Deepfloat64) []Deepfloat64 {
-	err := n.Forward(input)
-	if err != nil {
-		// A panic is appropriate here because incorrect input dimensions are a programmer error.
-		panic(fmt.Sprintf("prediction failed: %v", err))
+// PredictInto computes a forward pass and copies the prediction into out.
+func (n *Neural) PredictInto(input []Deepfloat64, out []Deepfloat64) error {
+	if err := n.Forward(input); err != nil {
+		return err
 	}
 	outLayer := n.Layers[len(n.Layers)-1]
-	out := make([]Deepfloat64, len(outLayer.Neurons))
+	if len(out) != len(outLayer.Neurons) {
+		return fmt.Errorf("invalid output slice dimension - expected: %d got: %d", len(outLayer.Neurons), len(out))
+	}
 	for i, neuron := range outLayer.Neurons {
 		out[i] = neuron.Sum
+	}
+	return nil
+}
+
+// Predict computes a forward pass and returns a prediction
+func (n *Neural) Predict(input []Deepfloat64) []Deepfloat64 {
+	outLayer := n.Layers[len(n.Layers)-1]
+	out := make([]Deepfloat64, len(outLayer.Neurons))
+	if err := n.PredictInto(input, out); err != nil {
+		panic(fmt.Sprintf("prediction failed: %v", err))
 	}
 	return out
 }
 
-// Trapolate computes a forward pass with trapolation and returns a prediction
-func (n *Neural) Trapolate(input []Deepfloat64, trapolation tabulatedfunction.Trapolation) []Deepfloat64 {
-	err := n.ForwardT(input, trapolation)
-	if err != nil {
-		// A panic is appropriate here because incorrect input dimensions are a programmer error.
-		panic(fmt.Sprintf("prediction failed: %v", err))
+// TrapolateInto computes a forward pass with trapolation and copies the prediction into out.
+func (n *Neural) TrapolateInto(input []Deepfloat64, out []Deepfloat64, trapolation tabulatedfunction.Trapolation) error {
+	if err := n.ForwardT(input, trapolation); err != nil {
+		return err
 	}
 	outLayer := n.Layers[len(n.Layers)-1]
-	out := make([]Deepfloat64, len(outLayer.Neurons))
+	if len(out) != len(outLayer.Neurons) {
+		return fmt.Errorf("invalid output slice dimension - expected: %d got: %d", len(outLayer.Neurons), len(out))
+	}
 	for i, neuron := range outLayer.Neurons {
 		out[i] = neuron.Sum
+	}
+	return nil
+}
+
+// Trapolate computes a forward pass with trapolation and returns a prediction
+func (n *Neural) Trapolate(input []Deepfloat64, trapolation tabulatedfunction.Trapolation) []Deepfloat64 {
+	outLayer := n.Layers[len(n.Layers)-1]
+	out := make([]Deepfloat64, len(outLayer.Neurons))
+	if err := n.TrapolateInto(input, out, trapolation); err != nil {
+		panic(fmt.Sprintf("prediction failed: %v", err))
 	}
 	return out
 }

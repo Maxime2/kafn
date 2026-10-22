@@ -204,6 +204,18 @@ func Test_Neural_ForwardT_Trapolate(t *testing.T) {
 	assert.Panics(t, func() {
 		n.Predict([]Deepfloat64{DF(0.1)})
 	})
+
+	// PredictInto and TrapolateInto success & validation
+	buf := make([]Deepfloat64, 1)
+	assert.NoError(t, n.PredictInto([]Deepfloat64{DF(0.3), DF(0.4)}, buf))
+	assert.Equal(t, out[0], buf[0])
+	assert.Error(t, n.PredictInto([]Deepfloat64{DF(0.3)}, buf))
+	assert.Error(t, n.PredictInto([]Deepfloat64{DF(0.3), DF(0.4)}, make([]Deepfloat64, 2)))
+
+	assert.NoError(t, n.TrapolateInto([]Deepfloat64{DF(0.3), DF(0.4)}, buf, tabulatedfunction.TrapolationLinear))
+	assert.Equal(t, out[0], buf[0])
+	assert.Error(t, n.TrapolateInto([]Deepfloat64{DF(0.3)}, buf, tabulatedfunction.TrapolationLinear))
+	assert.Error(t, n.TrapolateInto([]Deepfloat64{DF(0.3), DF(0.4)}, make([]Deepfloat64, 2), tabulatedfunction.TrapolationLinear))
 }
 
 func Test_Neural_Display_And_Utils(t *testing.T) {
