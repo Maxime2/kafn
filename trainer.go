@@ -163,61 +163,13 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 
 		remainingError := errors[i]
 
-		for idx, synapse := range n.TabulatedIn {
-			remainingSynapses := numIn - idx
-			gap0 := Div(remainingError, DF(float64(remainingSynapses)))
-			gap := gap0
-
-			type neighborInfo struct {
-				dist float64
-				out  Deepfloat64
+		applySynapse := func(idx int, synapse *SynapseTabulated, weightedAvg Deepfloat64, hasNeighbours bool) {
+			gap := Div(remainingError, DF(float64(numIn-idx)))
+			if hasNeighbours {
+				gap = Div(Add(gap, Sub(weightedAvg, synapse.Out)), DF(2))
 			}
-			var neighbors []neighborInfo
-			if idx > 0 {
-				nb := n.TabulatedIn[idx-1]
-				neighbors = append(neighbors, neighborInfo{
-					dist: math.Abs(Float64(Sub(nb.In, synapse.In))),
-					out:  nb.Out,
-				})
-			}
-			if idx < numIn-1 {
-				nb := n.TabulatedIn[idx+1]
-				neighbors = append(neighbors, neighborInfo{
-					dist: math.Abs(Float64(Sub(nb.In, synapse.In))),
-					out:  nb.Out,
-				})
-			}
-
-			if len(neighbors) > 0 {
-				var zeroDist []Deepfloat64
-				for _, nb := range neighbors {
-					if nb.dist < 1e-15 {
-						zeroDist = append(zeroDist, nb.out)
-					}
-				}
-
-				var weightedAvg Deepfloat64
-				if len(zeroDist) > 0 {
-					weightedAvg = Div(Sum(zeroDist), DF(float64(len(zeroDist))))
-				} else {
-					sumWeight := 0.0
-					sumWeightedOut := 0.0
-					for _, nb := range neighbors {
-						w := 1.0 / nb.dist
-						sumWeight += w
-						sumWeightedOut += w * Float64(nb.out)
-					}
-					weightedAvg = DF(sumWeightedOut / sumWeight)
-				}
-
-				gap = Div(Add(gap0, Sub(weightedAvg, synapse.Out)), DF(2))
-			}
-
 			currentOut := synapse.Out
 			newOut := Add(currentOut, gap)
-
-			// If the gap is too small to change the float64 value, force a change
-			// by finding the next representable floating-point number.
 			if newOut == currentOut && gap != 0 {
 				if gap > 0 {
 					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(1)))
@@ -229,11 +181,44 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 				newOut = DF(math.Nextafter(0.0, math.Inf(1)))
 			}
 			synapse.AddPoint(synapse.In, newOut, neural.Config.Epoch)
-
-			actualAppliedGap := Sub(newOut, currentOut)
-			remainingError = Sub(remainingError, actualAppliedGap)
+			remainingError = Sub(remainingError, Sub(newOut, currentOut))
 		}
 
+		if numIn == 1 {
+			applySynapse(0, n.TabulatedIn[0], 0, false)
+			continue
+		}
+
+		// First boundary synapse
+		applySynapse(0, n.TabulatedIn[0], n.TabulatedIn[1].Out, true)
+
+		// Interior synapses (no boundary branches)
+		for idx := 1; idx < numIn-1; idx++ {
+			synapse := n.TabulatedIn[idx]
+			nbL := n.TabulatedIn[idx-1]
+			nbR := n.TabulatedIn[idx+1]
+			distL := math.Abs(float64(nbL.In - synapse.In))
+			distR := math.Abs(float64(nbR.In - synapse.In))
+			zeroL := distL < 1e-15
+			zeroR := distR < 1e-15
+
+			var weightedAvg Deepfloat64
+			if zeroL && zeroR {
+				weightedAvg = (nbL.Out + nbR.Out) * 0.5
+			} else if zeroL {
+				weightedAvg = nbL.Out
+			} else if zeroR {
+				weightedAvg = nbR.Out
+			} else {
+				wL := 1.0 / distL
+				wR := 1.0 / distR
+				weightedAvg = DF((wL*float64(nbL.Out) + wR*float64(nbR.Out)) / (wL + wR))
+			}
+			applySynapse(idx, synapse, weightedAvg, true)
+		}
+
+		// Last boundary synapse
+		applySynapse(numIn-1, n.TabulatedIn[numIn-1], n.TabulatedIn[numIn-2].Out, true)
 	}
 }
 
