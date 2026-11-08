@@ -20,9 +20,11 @@ func NewLayer(l, n int, synapse SynapseType) *Layer {
 	//	synapse := c.Synapse[l]
 
 	neurons := make([]*Neuron, n)
+	storage := make([]Neuron, n)
 
 	for i := 0; i < n; i++ {
-		neurons[i] = NewNeuron()
+		storage[i] = *NewNeuron()
+		neurons[i] = &storage[i]
 	}
 	return &Layer{
 		Number:  l,
@@ -39,6 +41,7 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 	wA := DF(0)
 	c.sum_of_weights = wA
 	for _, neuron := range l.Neurons {
+		synStorage := make([]SynapseAnalytic, c.Inputs)
 		neuron.AnalyticIn = make([]*SynapseAnalytic, c.Inputs)
 		for i := range neuron.AnalyticIn {
 			// Nested logarithms (iterated logarithm) provide even slower growth.
@@ -47,7 +50,9 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 			if i < len(c.InputTags) {
 				tag = c.InputTags[i]
 			}
-			neuron.AnalyticIn[i] = NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, tag)
+			syn := NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, tag)
+			synStorage[i] = *syn
+			neuron.AnalyticIn[i] = &synStorage[i]
 			c.sum_of_weights = Add(c.sum_of_weights, wA)
 			c.sum_of_weights = Add(c.sum_of_weights, DF(A))
 			wA = Add(wA, DF(A+Eps))
@@ -59,12 +64,15 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 // synapse with the given weight function
 // func (l *Layer) Connect(next *Layer, degree int, weight WeightType) {
 func (l *Layer) Connect(next *Layer, c *Config) {
+	numIn := len(l.Neurons)
 	for _, neuron := range next.Neurons {
-		neuron.TabulatedIn = make([]*SynapseTabulated, len(l.Neurons))
+		synStorage := make([]SynapseTabulated, numIn)
+		neuron.TabulatedIn = make([]*SynapseTabulated, numIn)
 		for i := range l.Neurons {
 			syn := NewSynapseTabulated(c, neuron, fmt.Sprintf("L:%d N:%d", l.Number, i))
 			syn.AddPoint(0.5, 0.5, 0)
-			neuron.TabulatedIn[i] = syn
+			synStorage[i] = *syn
+			neuron.TabulatedIn[i] = &synStorage[i]
 		}
 	}
 }

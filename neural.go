@@ -93,10 +93,12 @@ func (n *Neural) fire() {
 	if len(n.Layers) > 1 {
 		l0 := n.Layers[0]
 		for _, neuron := range n.Layers[1].Neurons {
+			var sum Deepfloat64
 			for i, s := range neuron.TabulatedIn {
 				s.Fire(l0.Neurons[i].Sum)
+				sum += s.Out
 			}
-			neuron.calculateNeuronOutput()
+			neuron.setSum(sum)
 		}
 	}
 }
@@ -108,10 +110,12 @@ func (n *Neural) fireT(trapolation tabulatedfunction.Trapolation) {
 	if len(n.Layers) > 1 {
 		l0 := n.Layers[0]
 		for _, neuron := range n.Layers[1].Neurons {
+			var sum Deepfloat64
 			for i, s := range neuron.TabulatedIn {
 				s.FireT(l0.Neurons[i].Sum, trapolation)
+				sum += s.Out
 			}
-			neuron.calculateNeuronOutput()
+			neuron.setSum(sum)
 		}
 	}
 }
@@ -122,13 +126,28 @@ func (n *Neural) Forward(input []Deepfloat64) error {
 	if l != n.Config.Inputs {
 		return fmt.Errorf("invalid input dimension - expected: %d got: %d", n.Config.Inputs, len(input))
 	}
-	for _, neuron := range n.Layers[0].Neurons {
-		for i := range input {
-			neuron.AnalyticIn[i].Fire(input[i])
+	l0 := n.Layers[0]
+	for _, neuron := range l0.Neurons {
+		var sum Deepfloat64
+		for i, val := range input {
+			s := neuron.AnalyticIn[i]
+			s.In = val
+			s.Refire()
+			sum += s.Out
 		}
+		neuron.setSum(sum)
 	}
 
-	n.fire()
+	if len(n.Layers) > 1 {
+		for _, neuron := range n.Layers[1].Neurons {
+			var sum Deepfloat64
+			for i, s := range neuron.TabulatedIn {
+				s.Fire(l0.Neurons[i].Sum)
+				sum += s.Out
+			}
+			neuron.setSum(sum)
+		}
+	}
 	return nil
 }
 
@@ -138,13 +157,28 @@ func (n *Neural) ForwardT(input []Deepfloat64, trapolation tabulatedfunction.Tra
 	if l != n.Config.Inputs {
 		return fmt.Errorf("invalid input dimension - expected: %d got: %d", n.Config.Inputs, len(input))
 	}
-	for _, neuron := range n.Layers[0].Neurons {
-		for i := range input {
-			neuron.AnalyticIn[i].FireT(input[i], trapolation)
+	l0 := n.Layers[0]
+	for _, neuron := range l0.Neurons {
+		var sum Deepfloat64
+		for i, val := range input {
+			s := neuron.AnalyticIn[i]
+			s.In = val
+			s.Refire()
+			sum += s.Out
 		}
+		neuron.setSum(sum)
 	}
 
-	n.fireT(trapolation)
+	if len(n.Layers) > 1 {
+		for _, neuron := range n.Layers[1].Neurons {
+			var sum Deepfloat64
+			for i, s := range neuron.TabulatedIn {
+				s.FireT(l0.Neurons[i].Sum, trapolation)
+				sum += s.Out
+			}
+			neuron.setSum(sum)
+		}
+	}
 	return nil
 }
 
