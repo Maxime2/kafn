@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
@@ -18,6 +19,37 @@ func Test_Init(t *testing.T) {
 
 	assert.Len(t, n.Layers, 2)
 
+}
+
+func Test_Predict_Concurrent(t *testing.T) {
+	Rand.Seed(0)
+	n := NewNeural(&Config{
+		Inputs:  2,
+		Outputs: 2,
+	})
+
+	input := []Deepfloat64{DF(0.3), DF(0.7)}
+	expected := n.Predict(input)
+
+	var wg sync.WaitGroup
+	const goroutines = 20
+	const iterationsPerGoroutine = 50
+
+	for g := 0; g < goroutines; g++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterationsPerGoroutine; i++ {
+				res := n.Predict(input)
+				for k := range res {
+					if res[k] != expected[k] {
+						t.Errorf("Concurrent predict mismatch: got %v, want %v", res[k], expected[k])
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func Test_Forward(t *testing.T) {

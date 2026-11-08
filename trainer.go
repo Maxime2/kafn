@@ -3,6 +3,7 @@ package kafn
 import (
 	"math"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/theothertomelliott/acyclic"
@@ -11,8 +12,10 @@ import (
 // OnlineTrainer is a basic, online network trainer
 type OnlineTrainer struct {
 	*internal
-	printer   *StatsPrinter
-	verbosity int
+	printer     *StatsPrinter
+	verbosity   int
+	parallelism int
+	updateMu    sync.RWMutex
 }
 
 // NewTrainer creates a new trainer
@@ -20,9 +23,13 @@ func NewTrainer(precision, verbosity, parallelism int) *OnlineTrainer {
 	if precision == 0 {
 		precision = 4
 	}
+	if parallelism < 0 {
+		parallelism = 0
+	}
 	return &OnlineTrainer{
-		printer:   NewStatsPrinter(precision),
-		verbosity: verbosity,
+		printer:     NewStatsPrinter(precision),
+		verbosity:   verbosity,
+		parallelism: parallelism,
 	}
 }
 
@@ -73,6 +80,14 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 		n.Smooth()
 	}
 
+	P := t.parallelism
+	if P <= 0 {
+		P = 1
+	}
+	if P > len(examples) {
+		P = len(examples)
+	}
+
 	for i := uint32(1); i <= iterations; i++ {
 		n.Config.Epoch++
 		isReporting := (t.verbosity > 0 && i%uint32(t.verbosity) == 0 && len(validation) > 0) || i == iterations
@@ -83,8 +98,12 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 				}
 			}
 		}
-		for j := 0; j < len(examples); j++ {
-			t.learn(n, examples[j], isReporting)
+		if P <= 1 {
+			for j := 0; j < len(examples); j++ {
+				t.learn(n, examples[j], isReporting)
+			}
+		} else {
+			t.trainEpochParallel(n, examples, isReporting, P)
 		}
 		if isReporting {
 			for e := range t.E {
@@ -100,6 +119,82 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 		t.epoch(n, uint32(n.Config.Epoch))
 	}
 	n.TotalError = TotalError(t.E[len(n.Layers)-1])
+}
+
+func (t *OnlineTrainer) trainEpochParallel(n *Neural, examples Examples, isReporting bool, P int) {
+	var wg sync.WaitGroup
+	chunks := examples.SplitN(P)
+
+	type workerLoss struct {
+		loss [][]Deepfloat64
+	}
+	losses := make([]workerLoss, len(chunks))
+
+	outLayerIdx := len(n.Layers) - 1
+	numOut := len(n.Layers[outLayerIdx].Neurons)
+
+	for p := 0; p < len(chunks); p++ {
+		if len(chunks[p]) == 0 {
+			continue
+		}
+		wg.Add(1)
+		go func(workerIdx int, workerExamples Examples) {
+			defer wg.Done()
+			ctx := n.NewContext()
+			deltas := make([]Deepfloat64, numOut)
+
+			var localE [][]Deepfloat64
+			if isReporting {
+				localE = newE(n.Layers)
+			}
+
+			for _, e := range workerExamples {
+				t.updateMu.RLock()
+				err := n.ForwardCtx(e.Input, ctx)
+				t.updateMu.RUnlock()
+				if err != nil {
+					continue
+				}
+
+				needsUpdate := false
+				outSums := ctx.LayerSums[outLayerIdx]
+				for k := 0; k < numOut; k++ {
+					errVal := e.Response[k] - outSums[k]
+					deltas[k] = errVal
+					if isReporting {
+						localE[outLayerIdx][k] += t.loss.F(outSums[k], e.Response[k])
+					}
+					if errVal != 0 {
+						needsUpdate = true
+					}
+				}
+
+				if needsUpdate {
+					t.updateMu.Lock()
+					t.updateFromCtx(n, deltas, ctx)
+					t.updateMu.Unlock()
+				}
+			}
+
+			if isReporting {
+				losses[workerIdx] = workerLoss{loss: localE}
+			}
+		}(p, chunks[p])
+	}
+	wg.Wait()
+
+	if isReporting {
+		for _, wl := range losses {
+			if wl.loss == nil {
+				continue
+			}
+			for layerIdx := range t.E {
+				for neuronIdx := range t.E[layerIdx] {
+					t.E[layerIdx][neuronIdx] += wl.loss[layerIdx][neuronIdx]
+				}
+			}
+		}
+	}
 }
 
 func (t *OnlineTrainer) learn(n *Neural, e Example, recordLoss bool) {
@@ -193,6 +288,84 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 		// Last boundary synapse
 		applySynapseUpdate(numIn-1, numIn, n.TabulatedIn[numIn-1], n.TabulatedIn[numIn-2].Out, true, remainingError, neural.Config.Epoch)
 	}
+}
+
+func (t *OnlineTrainer) updateFromCtx(neural *Neural, errors []Deepfloat64, ctx *Context) {
+	outLayerIdx := len(neural.Layers) - 1
+	l := neural.Layers[outLayerIdx]
+	l0Sums := ctx.LayerSums[0]
+
+	for i, n := range l.Neurons {
+		numIn := len(n.TabulatedIn)
+		if numIn == 0 {
+			continue
+		}
+
+		tabOut := ctx.TabulatedIn[i]
+		remainingError := errors[i]
+
+		if numIn == 1 {
+			applySynapseUpdateCtx(0, numIn, n.TabulatedIn[0], l0Sums[0], tabOut[0], 0, false, remainingError, neural.Config.Epoch)
+			continue
+		}
+
+		// First boundary synapse
+		remainingError = applySynapseUpdateCtx(0, numIn, n.TabulatedIn[0], l0Sums[0], tabOut[0], tabOut[1], true, remainingError, neural.Config.Epoch)
+
+		// Interior synapses
+		for idx := 1; idx < numIn-1; idx++ {
+			synapse := n.TabulatedIn[idx]
+			inVal := l0Sums[idx]
+			currentOut := tabOut[idx]
+
+			inL := l0Sums[idx-1]
+			inR := l0Sums[idx+1]
+			outL := tabOut[idx-1]
+			outR := tabOut[idx+1]
+
+			distL := math.Abs(float64(inL) - float64(inVal))
+			distR := math.Abs(float64(inR) - float64(inVal))
+			zeroL := distL < 1e-15
+			zeroR := distR < 1e-15
+
+			var weightedAvg Deepfloat64
+			if zeroL && zeroR {
+				weightedAvg = (outL + outR) * 0.5
+			} else if zeroL {
+				weightedAvg = outL
+			} else if zeroR {
+				weightedAvg = outR
+			} else {
+				wL := 1.0 / distL
+				wR := 1.0 / distR
+				weightedAvg = Deepfloat64((wL*float64(outL) + wR*float64(outR)) / (wL + wR))
+			}
+			remainingError = applySynapseUpdateCtx(idx, numIn, synapse, inVal, currentOut, weightedAvg, true, remainingError, neural.Config.Epoch)
+		}
+
+		// Last boundary synapse
+		applySynapseUpdateCtx(numIn-1, numIn, n.TabulatedIn[numIn-1], l0Sums[numIn-1], tabOut[numIn-1], tabOut[numIn-2], true, remainingError, neural.Config.Epoch)
+	}
+}
+
+func applySynapseUpdateCtx(idx, numIn int, synapse *SynapseTabulated, inVal, currentOut, weightedAvg Deepfloat64, hasNeighbours bool, remainingError Deepfloat64, epoch uint32) Deepfloat64 {
+	gap := remainingError / Deepfloat64(numIn-idx)
+	if hasNeighbours {
+		gap = (gap + (weightedAvg - currentOut)) * 0.5
+	}
+	newOut := currentOut + gap
+	if newOut == currentOut && gap != 0 {
+		if gap > 0 {
+			newOut = Deepfloat64(math.Nextafter(float64(currentOut), math.Inf(1)))
+		} else {
+			newOut = Deepfloat64(math.Nextafter(float64(currentOut), math.Inf(-1)))
+		}
+	}
+	if newOut == 0 {
+		newOut = Deepfloat64(math.Nextafter(0.0, math.Inf(1)))
+	}
+	synapse.AddPoint(inVal, newOut, epoch)
+	return remainingError - (newOut - currentOut)
 }
 
 func applySynapseUpdate(idx, numIn int, synapse *SynapseTabulated, weightedAvg Deepfloat64, hasNeighbours bool, remainingError Deepfloat64, epoch uint32) Deepfloat64 {

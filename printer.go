@@ -3,6 +3,7 @@ package kafn
 import (
 	"fmt"
 	"log"
+	"sync"
 	"text/tabwriter"
 	"time"
 )
@@ -53,13 +54,40 @@ func crossValidate(n *Neural, validation Examples) Deepfloat64 {
 	responses := make([][]Deepfloat64, len(validation))
 	predBuf := make([]Deepfloat64, len(validation)*numOut)
 
-	for i := 0; i < len(validation); i++ {
-		predSlice := predBuf[i*numOut : (i+1)*numOut]
-		if err := n.PredictInto(validation[i].Input, predSlice); err != nil {
-			panic(fmt.Sprintf("validation prediction failed: %v", err))
+	if len(validation) >= 16 {
+		workers := min(8, len(validation))
+		chunkSize := (len(validation) + workers - 1) / workers
+		var wg sync.WaitGroup
+		for w := 0; w < workers; w++ {
+			start := w * chunkSize
+			end := min(start+chunkSize, len(validation))
+			if start >= end {
+				continue
+			}
+			wg.Add(1)
+			go func(s, e int) {
+				defer wg.Done()
+				ctx := n.NewContext()
+				for i := s; i < e; i++ {
+					predSlice := predBuf[i*numOut : (i+1)*numOut]
+					if err := n.PredictIntoCtx(validation[i].Input, predSlice, ctx); err != nil {
+						panic(fmt.Sprintf("validation prediction failed: %v", err))
+					}
+					predictions[i] = predSlice
+					responses[i] = validation[i].Response
+				}
+			}(start, end)
 		}
-		predictions[i] = predSlice
-		responses[i] = validation[i].Response
+		wg.Wait()
+	} else {
+		for i := 0; i < len(validation); i++ {
+			predSlice := predBuf[i*numOut : (i+1)*numOut]
+			if err := n.PredictInto(validation[i].Input, predSlice); err != nil {
+				panic(fmt.Sprintf("validation prediction failed: %v", err))
+			}
+			predictions[i] = predSlice
+			responses[i] = validation[i].Response
+		}
 	}
 
 	return GetLoss(n.Config.Loss).Cf(predictions, responses)

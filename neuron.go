@@ -6,10 +6,8 @@ import (
 )
 
 // Neuron is a neural network node
-//
-// Note: Neuron is stateful and NOT thread-safe. Concurrent calls to
-// Forward or Predict on the parent Neural network will cause data races
-// and corrupted activation states because transient values are stored directly in the fields.
+// Note: Neuron stores topology and boundary tracking (MinSum/MaxSum).
+// For thread-safe concurrent evaluation and parallel training, use Context.
 type Neuron struct {
 	AnalyticIn     []*SynapseAnalytic
 	TabulatedIn    []*SynapseTabulated
