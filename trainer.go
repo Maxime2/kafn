@@ -8,12 +8,6 @@ import (
 	"github.com/theothertomelliott/acyclic"
 )
 
-// Trainer is a neural network trainer
-type Trainer interface {
-	Train(n *Neural, examples, validation Examples, iterations uint32)
-	SetPrefix(prefix string)
-}
-
 // OnlineTrainer is a basic, online network trainer
 type OnlineTrainer struct {
 	*internal
@@ -163,42 +157,21 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 
 		remainingError := errors[i]
 
-		applySynapse := func(idx int, synapse *SynapseTabulated, weightedAvg Deepfloat64, hasNeighbours bool) {
-			gap := Div(remainingError, DF(float64(numIn-idx)))
-			if hasNeighbours {
-				gap = Div(Add(gap, Sub(weightedAvg, synapse.Out)), DF(2))
-			}
-			currentOut := synapse.Out
-			newOut := Add(currentOut, gap)
-			if newOut == currentOut && gap != 0 {
-				if gap > 0 {
-					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(1)))
-				} else {
-					newOut = DF(math.Nextafter(Float64(currentOut), math.Inf(-1)))
-				}
-			}
-			if newOut == 0 {
-				newOut = DF(math.Nextafter(0.0, math.Inf(1)))
-			}
-			synapse.AddPoint(synapse.In, newOut, neural.Config.Epoch)
-			remainingError = Sub(remainingError, Sub(newOut, currentOut))
-		}
-
 		if numIn == 1 {
-			applySynapse(0, n.TabulatedIn[0], 0, false)
+			applySynapseUpdate(0, numIn, n.TabulatedIn[0], 0, false, &remainingError, neural.Config.Epoch)
 			continue
 		}
 
 		// First boundary synapse
-		applySynapse(0, n.TabulatedIn[0], n.TabulatedIn[1].Out, true)
+		applySynapseUpdate(0, numIn, n.TabulatedIn[0], n.TabulatedIn[1].Out, true, &remainingError, neural.Config.Epoch)
 
 		// Interior synapses (no boundary branches)
 		for idx := 1; idx < numIn-1; idx++ {
 			synapse := n.TabulatedIn[idx]
 			nbL := n.TabulatedIn[idx-1]
 			nbR := n.TabulatedIn[idx+1]
-			distL := math.Abs(float64(nbL.In - synapse.In))
-			distR := math.Abs(float64(nbR.In - synapse.In))
+			distL := math.Abs(float64(nbL.In) - float64(synapse.In))
+			distR := math.Abs(float64(nbR.In) - float64(synapse.In))
 			zeroL := distL < 1e-15
 			zeroR := distR < 1e-15
 
@@ -214,12 +187,33 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 				wR := 1.0 / distR
 				weightedAvg = DF((wL*float64(nbL.Out) + wR*float64(nbR.Out)) / (wL + wR))
 			}
-			applySynapse(idx, synapse, weightedAvg, true)
+			applySynapseUpdate(idx, numIn, synapse, weightedAvg, true, &remainingError, neural.Config.Epoch)
 		}
 
 		// Last boundary synapse
-		applySynapse(numIn-1, n.TabulatedIn[numIn-1], n.TabulatedIn[numIn-2].Out, true)
+		applySynapseUpdate(numIn-1, numIn, n.TabulatedIn[numIn-1], n.TabulatedIn[numIn-2].Out, true, &remainingError, neural.Config.Epoch)
 	}
+}
+
+func applySynapseUpdate(idx, numIn int, synapse *SynapseTabulated, weightedAvg Deepfloat64, hasNeighbours bool, remainingError *Deepfloat64, epoch uint32) {
+	gap := (*remainingError) / Deepfloat64(numIn-idx)
+	if hasNeighbours {
+		gap = (gap + (weightedAvg - synapse.Out)) * 0.5
+	}
+	currentOut := synapse.Out
+	newOut := currentOut + gap
+	if newOut == currentOut && gap != 0 {
+		if gap > 0 {
+			newOut = Deepfloat64(math.Nextafter(float64(currentOut), math.Inf(1)))
+		} else {
+			newOut = Deepfloat64(math.Nextafter(float64(currentOut), math.Inf(-1)))
+		}
+	}
+	if newOut == 0 {
+		newOut = Deepfloat64(math.Nextafter(0.0, math.Inf(1)))
+	}
+	synapse.AddPoint(synapse.In, newOut, epoch)
+	*remainingError -= (newOut - currentOut)
 }
 
 // Save() saves internal of the trainer in readable JSON into file specified
