@@ -158,12 +158,12 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 		remainingError := errors[i]
 
 		if numIn == 1 {
-			applySynapseUpdate(0, numIn, n.TabulatedIn[0], 0, false, &remainingError, neural.Config.Epoch)
+			applySynapseUpdate(0, numIn, n.TabulatedIn[0], 0, false, remainingError, neural.Config.Epoch)
 			continue
 		}
 
 		// First boundary synapse
-		applySynapseUpdate(0, numIn, n.TabulatedIn[0], n.TabulatedIn[1].Out, true, &remainingError, neural.Config.Epoch)
+		remainingError = applySynapseUpdate(0, numIn, n.TabulatedIn[0], n.TabulatedIn[1].Out, true, remainingError, neural.Config.Epoch)
 
 		// Interior synapses (no boundary branches)
 		for idx := 1; idx < numIn-1; idx++ {
@@ -185,18 +185,18 @@ func (t *OnlineTrainer) update(neural *Neural, errors []Deepfloat64) {
 			} else {
 				wL := 1.0 / distL
 				wR := 1.0 / distR
-				weightedAvg = DF((wL*float64(nbL.Out) + wR*float64(nbR.Out)) / (wL + wR))
+				weightedAvg = Deepfloat64((wL*float64(nbL.Out) + wR*float64(nbR.Out)) / (wL + wR))
 			}
-			applySynapseUpdate(idx, numIn, synapse, weightedAvg, true, &remainingError, neural.Config.Epoch)
+			remainingError = applySynapseUpdate(idx, numIn, synapse, weightedAvg, true, remainingError, neural.Config.Epoch)
 		}
 
 		// Last boundary synapse
-		applySynapseUpdate(numIn-1, numIn, n.TabulatedIn[numIn-1], n.TabulatedIn[numIn-2].Out, true, &remainingError, neural.Config.Epoch)
+		applySynapseUpdate(numIn-1, numIn, n.TabulatedIn[numIn-1], n.TabulatedIn[numIn-2].Out, true, remainingError, neural.Config.Epoch)
 	}
 }
 
-func applySynapseUpdate(idx, numIn int, synapse *SynapseTabulated, weightedAvg Deepfloat64, hasNeighbours bool, remainingError *Deepfloat64, epoch uint32) {
-	gap := (*remainingError) / Deepfloat64(numIn-idx)
+func applySynapseUpdate(idx, numIn int, synapse *SynapseTabulated, weightedAvg Deepfloat64, hasNeighbours bool, remainingError Deepfloat64, epoch uint32) Deepfloat64 {
+	gap := remainingError / Deepfloat64(numIn-idx)
 	if hasNeighbours {
 		gap = (gap + (weightedAvg - synapse.Out)) * 0.5
 	}
@@ -213,7 +213,7 @@ func applySynapseUpdate(idx, numIn int, synapse *SynapseTabulated, weightedAvg D
 		newOut = Deepfloat64(math.Nextafter(0.0, math.Inf(1)))
 	}
 	synapse.AddPoint(synapse.In, newOut, epoch)
-	*remainingError -= (newOut - currentOut)
+	return remainingError - (newOut - currentOut)
 }
 
 // Save() saves internal of the trainer in readable JSON into file specified
