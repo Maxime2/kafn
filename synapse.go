@@ -15,7 +15,6 @@ const (
 	SynapseTypeTabulated SynapseType = 1
 )
 
-
 type SynapseTabulated struct {
 	direct  *tabulatedfunction.TabulatedFunction
 	Up      *Neuron
@@ -186,12 +185,20 @@ func (s *SynapseAnalytic) WeightsString() string {
 }
 
 func (s *SynapseAnalytic) Refire() {
-	mul := DF(1)
-	s.Out = DF(0)
-	for k := 0; k < len(s.Weights); k++ {
-		s.Out = Add(s.Out, Mul(s.Weights[k], mul))
-		mul = Mul(mul, s.In)
+	n := len(s.Weights)
+	if n == 2 {
+		s.Out = s.Weights[0] + s.Weights[1]*s.In
+		return
 	}
+	if n == 0 {
+		s.Out = 0
+		return
+	}
+	out := s.Weights[n-1]
+	for k := n - 2; k >= 0; k-- {
+		out = out*s.In + s.Weights[k]
+	}
+	s.Out = out
 }
 
 func (s *SynapseAnalytic) Fire(value Deepfloat64) {
