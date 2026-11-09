@@ -72,20 +72,64 @@ func BenchmarkTrain(b *testing.B) {
 	examples := generateBenchmarkData(200, 2, 1)
 
 	b.Run("Sequential_P1", func(b *testing.B) {
+		trainer := NewTrainer(4, 0, 1)
 		b.ReportAllocs()
+		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			n := NewNeural(&Config{Inputs: 2, Outputs: 1})
-			trainer := NewTrainer(4, 0, 1)
 			trainer.Train(n, examples, nil, 5)
 		}
 	})
 
-	b.Run("Parallel_MultiCore", func(b *testing.B) {
+	b.Run("Sequential_P1_Reset", func(b *testing.B) {
+		n := NewNeural(&Config{Inputs: 2, Outputs: 1})
+		trainer := NewTrainer(4, 0, 1)
 		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			n.Reset()
+			trainer.Train(n, examples, nil, 5)
+		}
+	})
+
+	b.Run("Sequential_P1_TrainOnly", func(b *testing.B) {
+		n := NewNeural(&Config{Inputs: 2, Outputs: 1})
+		trainer := NewTrainer(4, 0, 1)
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			trainer.Train(n, examples, nil, 1)
+		}
+	})
+
+	b.Run("Parallel_MultiCore", func(b *testing.B) {
+		trainer := NewTrainer(4, 0, runtime.NumCPU())
+		b.ReportAllocs()
+		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			n := NewNeural(&Config{Inputs: 2, Outputs: 1})
-			trainer := NewTrainer(4, 0, runtime.NumCPU())
 			trainer.Train(n, examples, nil, 5)
+		}
+	})
+
+	b.Run("Parallel_MultiCore_Reset", func(b *testing.B) {
+		n := NewNeural(&Config{Inputs: 2, Outputs: 1})
+		trainer := NewTrainer(4, 0, runtime.NumCPU())
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			n.Reset()
+			trainer.Train(n, examples, nil, 5)
+		}
+	})
+
+	b.Run("Parallel_MultiCore_TrainOnly", func(b *testing.B) {
+		n := NewNeural(&Config{Inputs: 2, Outputs: 1})
+		trainer := NewTrainer(4, 0, runtime.NumCPU())
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			trainer.Train(n, examples, nil, 1)
 		}
 	})
 }

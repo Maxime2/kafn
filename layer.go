@@ -23,7 +23,8 @@ func NewLayer(l, n int, synapse SynapseType) *Layer {
 	storage := make([]Neuron, n)
 
 	for i := 0; i < n; i++ {
-		storage[i] = *NewNeuron()
+		storage[i].MinSum = math.MaxFloat64
+		storage[i].MaxSum = -math.MaxFloat64
 		neurons[i] = &storage[i]
 	}
 	return &Layer{
@@ -46,12 +47,20 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 		for i := range neuron.AnalyticIn {
 			// Nested logarithms (iterated logarithm) provide even slower growth.
 			A := 0.5 * math.Log(3.0+math.Log(3.0+math.Log(3.0+float64(i+1)/float64(c.Inputs)))) / float64(2*c.Inputs+1)
-			tag := fmt.Sprintf("In:%d", i)
+			tag := ""
 			if i < len(c.InputTags) {
 				tag = c.InputTags[i]
+			} else {
+				tag = fmt.Sprintf("In:%d", i)
 			}
-			syn := NewSynapseAnalytic(neuron, c.Degree, []float64{wA, DF(A)}, tag)
-			synStorage[i] = *syn
+			weights := make([]float64, c.Degree+1)
+			weights[0] = wA
+			weights[1] = DF(A)
+			synStorage[i] = SynapseAnalytic{
+				Weights: weights,
+				Up:      neuron,
+				Tag:     tag,
+			}
 			neuron.AnalyticIn[i] = &synStorage[i]
 			c.sum_of_weights += wA
 			c.sum_of_weights += DF(A)
@@ -64,14 +73,20 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 // synapse with the given weight function
 // func (l *Layer) Connect(next *Layer, degree int, weight WeightType) {
 func (l *Layer) Connect(next *Layer, c *Config) {
+	l.connectInternal(next, c, true)
+}
+
+func (l *Layer) connectInternal(next *Layer, c *Config, initPoints bool) {
 	numIn := len(l.Neurons)
 	for _, neuron := range next.Neurons {
 		synStorage := make([]SynapseTabulated, numIn)
 		neuron.TabulatedIn = make([]*SynapseTabulated, numIn)
 		for i := range l.Neurons {
-			syn := NewSynapseTabulated(c, neuron, fmt.Sprintf("L:%d N:%d", l.Number, i))
-			syn.AddPoint(0.5, 0.5, 0)
-			synStorage[i] = *syn
+			tag := fmt.Sprintf("L:%d N:%d", l.Number, i)
+			initSynapseTabulated(&synStorage[i], c, neuron, tag, initPoints)
+			if initPoints {
+				synStorage[i].AddPoint(0.5, 0.5, 0)
+			}
 			neuron.TabulatedIn[i] = &synStorage[i]
 		}
 	}

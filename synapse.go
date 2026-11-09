@@ -22,24 +22,29 @@ type SynapseTabulated struct {
 	Tag     string
 }
 
-// NewSynapseTabulated returns a tabulated function synapse preset with specific tag
-func NewSynapseTabulated(c *Config, up *Neuron, tag string) *SynapseTabulated {
+func initSynapseTabulated(syn *SynapseTabulated, c *Config, up *Neuron, tag string, initPoints bool) {
 	direct := tabulatedfunction.New()
 	direct.SetOrder(1)
 	direct.SetTrapolation(c.Trapolation)
-	syn := &SynapseTabulated{
-		direct: direct,
-		In:     DF(0),
-		Out:    DF(0),
-		Tag:    tag,
-		Up:     up,
+	syn.direct = direct
+	syn.In = 0
+	syn.Out = 0
+	syn.Tag = tag
+	syn.Up = up
+	if initPoints {
+		// Initialize with 100 random points.
+		for i := 0; i < 100; i++ {
+			x := Rand.Float64() * float64(c.sum_of_weights)
+			y := 0.3 + Rand.Float64()*0.4
+			syn.AddPoint(DF(x), DF(y), 0)
+		}
 	}
-	// Initialize with 100 random points.
-	for i := 0; i < 100; i++ {
-		x := Rand.Float64() * float64(c.sum_of_weights)
-		y := 0.3 + Rand.Float64()*0.4
-		syn.AddPoint(DF(x), DF(y), 0)
-	}
+}
+
+// NewSynapseTabulated returns a tabulated function synapse preset with specific tag
+func NewSynapseTabulated(c *Config, up *Neuron, tag string) *SynapseTabulated {
+	syn := &SynapseTabulated{}
+	initSynapseTabulated(syn, c, up, tag, true)
 	return syn
 }
 

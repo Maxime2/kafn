@@ -39,9 +39,20 @@ func (e Examples) SplitN(n int) []Examples {
 	if n <= 0 || len(e) == 0 {
 		return nil
 	}
+	if n > len(e) {
+		n = len(e)
+	}
 	res := make([]Examples, n)
-	for i, el := range e {
-		res[i%n] = append(res[i%n], el)
+	chunkSize := len(e) / n
+	remainder := len(e) % n
+	start := 0
+	for i := 0; i < n; i++ {
+		end := start + chunkSize
+		if i < remainder {
+			end++
+		}
+		res[i] = e[start:end]
+		start = end
 	}
 	return res
 }

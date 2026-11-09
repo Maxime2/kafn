@@ -54,7 +54,7 @@ func (n *Neural) Weights() [][][][]float64 {
 			for j, neuron := range l.Neurons {
 				weights[i][j] = make([][]float64, len(neuron.AnalyticIn))
 				for k, in := range neuron.AnalyticIn {
-					weights[i][j][k] = in.GetWeights()
+					weights[i][j][k] = in.Weights
 				}
 			}
 		}
@@ -115,7 +115,7 @@ func (n *Neural) Dump() *Dump {
 
 // FromDump restores a Neural from a dump
 func FromDump(dump *Dump) *Neural {
-	n := NewNeural(dump.Config)
+	n := newNeuralRaw(dump.Config, false)
 	n.ApplyWeights(dump.Weights)
 	n.ApplySynapses(dump.Synapses)
 
@@ -147,6 +147,14 @@ func (n *Neural) SaveReadable(path string) error {
 	return nil
 }
 
+type networkSaveData struct {
+	Config   *Config
+	Weights  [][]float64
+	MinSums  []float64
+	MaxSums  []float64
+	TabDumps []*tabulatedfunction.Dump
+}
+
 // Save saves network into the file specified to be loaded later
 func (n *Neural) Save(path string) error {
 	f, err := os.Create(path)
@@ -158,47 +166,32 @@ func (n *Neural) Save(path string) error {
 	w := bufio.NewWriter(f)
 	enc := gob.NewEncoder(w)
 
-	// Store Config
-	if err := enc.Encode(n.Config); err != nil {
-		return err
+	data := networkSaveData{
+		Config: n.Config,
 	}
-
-	// Store Weights
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
 				for _, in := range neuron.AnalyticIn {
-					if err := enc.Encode(in.GetWeights()); err != nil {
-						return err
-					}
+					data.Weights = append(data.Weights, in.Weights)
 				}
-				if err := enc.Encode(&neuron.MinSum); err != nil {
-					return err
+				data.MinSums = append(data.MinSums, neuron.MinSum)
+				data.MaxSums = append(data.MaxSums, neuron.MaxSum)
+			}
+		}
+		if l.S == SynapseTypeTabulated {
+			for _, neuron := range l.Neurons {
+				for _, s := range neuron.TabulatedIn {
+					data.TabDumps = append(data.TabDumps, s.Dump())
 				}
-				if err := enc.Encode(&neuron.MaxSum); err != nil {
-					return err
-				}
+				data.MinSums = append(data.MinSums, neuron.MinSum)
+				data.MaxSums = append(data.MaxSums, neuron.MaxSum)
 			}
 		}
 	}
 
-	// Store Tabulated Synapses
-	for _, l := range n.Layers {
-		if l.S == SynapseTypeTabulated {
-			for _, neuron := range l.Neurons {
-				for _, s := range neuron.TabulatedIn {
-					if err := enc.Encode(s.Dump()); err != nil {
-						return err
-					}
-				}
-				if err := enc.Encode(&neuron.MinSum); err != nil {
-					return err
-				}
-				if err := enc.Encode(&neuron.MaxSum); err != nil {
-					return err
-				}
-			}
-		}
+	if err := enc.Encode(&data); err != nil {
+		return err
 	}
 
 	if err := w.Flush(); err != nil {
@@ -210,8 +203,6 @@ func (n *Neural) Save(path string) error {
 
 // Load retrieves network from the file specified created using Save method
 func Load(path string) (*Neural, error) {
-	var config Config
-
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -221,51 +212,45 @@ func Load(path string) (*Neural, error) {
 	r := bufio.NewReader(f)
 	dec := gob.NewDecoder(r)
 
-	// Restore config
-	if err := dec.Decode(&config); err != nil {
+	var data networkSaveData
+	if err := dec.Decode(&data); err != nil {
 		return nil, err
 	}
 
-	n := NewNeural(&config)
+	n := newNeuralRaw(data.Config, false)
 
-	// Restore Weights for Analytic Synapses
-	// Restore Weights
+	wIdx := 0
+	msIdx := 0
+	tdIdx := 0
+
 	for _, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
 				for _, in := range neuron.AnalyticIn {
-					var w []float64
-					if err := dec.Decode(&w); err != nil {
-						return nil, err
+					if wIdx < len(data.Weights) {
+						in.SetWeights(data.Weights[wIdx])
+						wIdx++
 					}
-					in.SetWeights(w)
 				}
-				if err := dec.Decode(&neuron.MinSum); err != nil {
-					return nil, err
-				}
-				if err := dec.Decode(&neuron.MaxSum); err != nil {
-					return nil, err
+				if msIdx < len(data.MinSums) {
+					neuron.MinSum = data.MinSums[msIdx]
+					neuron.MaxSum = data.MaxSums[msIdx]
+					msIdx++
 				}
 			}
 		}
-	}
-
-	// Restore Tabulated Synapses
-	for _, l := range n.Layers {
 		if l.S == SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
 				for _, s := range neuron.TabulatedIn {
-					var dump tabulatedfunction.Dump
-					if err := dec.Decode(&dump); err != nil {
-						return nil, err
+					if tdIdx < len(data.TabDumps) {
+						s.FromDump(data.TabDumps[tdIdx])
+						tdIdx++
 					}
-					s.FromDump(&dump)
 				}
-				if err := dec.Decode(&neuron.MinSum); err != nil {
-					return nil, err
-				}
-				if err := dec.Decode(&neuron.MaxSum); err != nil {
-					return nil, err
+				if msIdx < len(data.MinSums) {
+					neuron.MinSum = data.MinSums[msIdx]
+					neuron.MaxSum = data.MaxSums[msIdx]
+					msIdx++
 				}
 			}
 		}

@@ -3,6 +3,7 @@ package kafn
 import (
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 
@@ -55,6 +56,10 @@ type Context struct {
 
 // NewNeural returns a new neural network
 func NewNeural(c *Config) *Neural {
+	return newNeuralRaw(c, true)
+}
+
+func newNeuralRaw(c *Config, initPoints bool) *Neural {
 
 	if c.InputTags == nil {
 		c.InputTags = make([]string, c.Inputs)
@@ -77,7 +82,7 @@ func NewNeural(c *Config) *Neural {
 		log.Fatal("Degree must be 1; or unspecified!")
 	}
 
-	layers := initializeLayers(c)
+	layers := initializeLayersRaw(c, initPoints)
 
 	n := &Neural{
 		Layers: layers,
@@ -123,13 +128,17 @@ func (n *Neural) NewContext() *Context {
 }
 
 func initializeLayers(c *Config) []*Layer {
+	return initializeLayersRaw(c, true)
+}
+
+func initializeLayersRaw(c *Config, initPoints bool) []*Layer {
 	layers := []*Layer{
 		NewLayer(0, 2*c.Inputs+1, SynapseTypeAnalytic),
 		NewLayer(1, c.Outputs, SynapseTypeTabulated),
 	}
 
 	layers[0].CreateInputSynapses(c)
-	layers[0].Connect(layers[1], c)
+	layers[0].connectInternal(layers[1], c, initPoints)
 
 	return layers
 }
@@ -387,6 +396,53 @@ func (n *Neural) String() string {
 		fmt.Fprint(&sb, l)
 	}
 	return sb.String()
+}
+
+// Reset restores network weights and tabulated points without reallocating topology or slice buffers.
+func (n *Neural) Reset() {
+	c := n.Config
+	wA := DF(0)
+	c.sum_of_weights = wA
+	if len(n.Layers) > 0 {
+		l0 := n.Layers[0]
+		for _, neuron := range l0.Neurons {
+			neuron.MinSum = math.MaxFloat64
+			neuron.MaxSum = -math.MaxFloat64
+			neuron.Sum = 0
+			neuron.Ideal = 0
+			for i, syn := range neuron.AnalyticIn {
+				A := 0.5 * math.Log(3.0+math.Log(3.0+math.Log(3.0+float64(i+1)/float64(c.Inputs)))) / float64(2*c.Inputs+1)
+				syn.Weights[0] = wA
+				syn.Weights[1] = DF(A)
+				syn.In = 0
+				syn.Out = 0
+				c.sum_of_weights += wA
+				c.sum_of_weights += DF(A)
+				wA += DF(A + Eps)
+			}
+		}
+	}
+	if len(n.Layers) > 1 {
+		l1 := n.Layers[1]
+		for _, neuron := range l1.Neurons {
+			neuron.MinSum = math.MaxFloat64
+			neuron.MaxSum = -math.MaxFloat64
+			neuron.Sum = 0
+			neuron.Ideal = 0
+			for _, syn := range neuron.TabulatedIn {
+				syn.Clear()
+				syn.In = 0
+				syn.Out = 0
+				for i := 0; i < 100; i++ {
+					x := Rand.Float64() * float64(c.sum_of_weights)
+					y := 0.3 + Rand.Float64()*0.4
+					syn.AddPoint(DF(x), DF(y), 0)
+				}
+				syn.AddPoint(0.5, 0.5, 0)
+			}
+		}
+	}
+	n.TotalError = 0
 }
 
 func TotalError(E []float64) float64 {
