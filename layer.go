@@ -50,12 +50,12 @@ func (l *Layer) CreateInputSynapses(c *Config) {
 			if i < len(c.InputTags) {
 				tag = c.InputTags[i]
 			}
-			syn := NewSynapseAnalytic(neuron, c.Degree, []Deepfloat64{wA, DF(A)}, tag)
+			syn := NewSynapseAnalytic(neuron, c.Degree, []float64{wA, DF(A)}, tag)
 			synStorage[i] = *syn
 			neuron.AnalyticIn[i] = &synStorage[i]
-			c.sum_of_weights = Add(c.sum_of_weights, wA)
-			c.sum_of_weights = Add(c.sum_of_weights, DF(A))
-			wA = Add(wA, DF(A+Eps))
+			c.sum_of_weights += wA
+			c.sum_of_weights += DF(A)
+			wA += DF(A + Eps)
 		}
 	}
 }

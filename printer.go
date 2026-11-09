@@ -45,14 +45,14 @@ func (p *StatsPrinter) PrintProgress(n *Neural, validation Examples, elapsed tim
 	_ = p.w.Flush()
 }
 
-func crossValidate(n *Neural, validation Examples) Deepfloat64 {
+func crossValidate(n *Neural, validation Examples) float64 {
 	if len(validation) == 0 || len(n.Layers) == 0 {
 		return DF(0)
 	}
 	numOut := len(n.Layers[len(n.Layers)-1].Neurons)
-	predictions := make([][]Deepfloat64, len(validation))
-	responses := make([][]Deepfloat64, len(validation))
-	predBuf := make([]Deepfloat64, len(validation)*numOut)
+	predictions := make([][]float64, len(validation))
+	responses := make([][]float64, len(validation))
+	predBuf := make([]float64, len(validation)*numOut)
 
 	if len(validation) >= 16 {
 		workers := min(8, len(validation))

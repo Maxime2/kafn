@@ -10,7 +10,7 @@ import (
 
 func Test_Synapse_Fire(t *testing.T) {
 	s := &SynapseAnalytic{
-		Weights: []Deepfloat64{DF(277.9848903746018),
+		Weights: []float64{DF(277.9848903746018),
 			DF(-46.494014333557395),
 			DF(-52.90141723171177),
 			DF(-53.09001803405063),
@@ -23,12 +23,12 @@ func Test_Synapse_Fire(t *testing.T) {
 		Tag: "test",
 	}
 	s.Fire(DF(7.9556310898783e-14))
-	assert.InEpsilon(t, 277.984890374598, Float64(s.Out), 0.0000001)
+	assert.InEpsilon(t, 277.984890374598, s.Out, 0.0000001)
 }
 
 func Test_SynapseAnalytic_Full(t *testing.T) {
 	parentNeuron := NewNeuron()
-	syn := NewSynapseAnalytic(parentNeuron, 1, []Deepfloat64{DF(1.5), DF(2.0)}, "test-analytic")
+	syn := NewSynapseAnalytic(parentNeuron, 1, []float64{DF(1.5), DF(2.0)}, "test-analytic")
 
 	assert.Equal(t, "test-analytic", syn.GetTag())
 	syn.SetTag("new-tag")
@@ -40,8 +40,8 @@ func Test_SynapseAnalytic_Full(t *testing.T) {
 	// Weights
 	syn.SetWeight(0, DF(3.0))
 	assert.Equal(t, DF(3.0), syn.GetWeight(0))
-	syn.SetWeights([]Deepfloat64{DF(1.0), DF(2.0)})
-	assert.Equal(t, []Deepfloat64{DF(1.0), DF(2.0)}, syn.GetWeights())
+	syn.SetWeights([]float64{DF(1.0), DF(2.0)})
+	assert.Equal(t, []float64{DF(1.0), DF(2.0)}, syn.GetWeights())
 
 	// Fire and FireT
 	syn.Fire(DF(2.0)) // 1.0 + 2.0*2.0 = 5.0
@@ -83,7 +83,7 @@ func Test_SynapseTabulated_Full(t *testing.T) {
 func Test_Neuron_FireT_And_NanTolerance(t *testing.T) {
 	n := NewNeuron()
 	// Synapse returning NaN should be sanitized after summation with a log warning
-	badSynapse := &SynapseAnalytic{Out: Deepfloat64(math.NaN())}
+	badSynapse := &SynapseAnalytic{Out: math.NaN()}
 	goodSynapse := &SynapseAnalytic{Out: DF(5.0)}
 	n.AnalyticIn = []*SynapseAnalytic{badSynapse, goodSynapse}
 

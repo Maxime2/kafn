@@ -19,8 +19,8 @@ func Test_RestoreFromDump(t *testing.T) {
 	new := FromDump(dump)
 
 	assert.Equal(t, n.String(), new.String())
-	pred1 := n.Predict([]Deepfloat64{DF(0)})
-	pred2 := new.Predict([]Deepfloat64{DF(0)})
+	pred1 := n.Predict([]float64{DF(0)})
+	pred2 := new.Predict([]float64{DF(0)})
 	assert.Len(t, pred1, len(pred2))
 	for i := range pred1 {
 		assert.Equal(t, pred1[i], pred2[i])
@@ -37,10 +37,10 @@ func Test_SaveLoad_Performance(t *testing.T) {
 	}
 	n := NewNeural(config)
 	xorData := Examples{
-		{[]Deepfloat64{DF(0), DF(0)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(1), DF(0)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(0), DF(1)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(1), DF(1)}, []Deepfloat64{DF(0)}},
+		{[]float64{DF(0), DF(0)}, []float64{DF(0)}},
+		{[]float64{DF(1), DF(0)}, []float64{DF(1)}},
+		{[]float64{DF(0), DF(1)}, []float64{DF(1)}},
+		{[]float64{DF(1), DF(1)}, []float64{DF(0)}},
 	}
 
 	trainer := NewTrainer(config.LossPrecision, 1, 0)
@@ -95,8 +95,8 @@ func Test_Marshal(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, n.String(), new.String())
-	pred1 := n.Predict([]Deepfloat64{DF(0)})
-	pred2 := new.Predict([]Deepfloat64{DF(0)})
+	pred1 := n.Predict([]float64{DF(0)})
+	pred2 := new.Predict([]float64{DF(0)})
 	assert.Len(t, pred1, len(pred2))
 	for i := range pred1 {
 		assert.Equal(t, pred1[i], pred2[i])

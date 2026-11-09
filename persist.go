@@ -14,18 +14,18 @@ import (
 
 // Point is a point in Tabulated activation
 type Point struct {
-	X, Y Deepfloat64
+	X, Y float64
 }
 
 // Dump is a neural network dump
 type Dump struct {
 	Config   *Config
-	Weights  [][][][]Deepfloat64
+	Weights  [][][][]float64
 	Synapses [][]Point
 }
 
 // ApplyWeights sets the weights from a four-dimensional slice
-func (n *Neural) ApplyWeights(weights [][][][]Deepfloat64) {
+func (n *Neural) ApplyWeights(weights [][][][]float64) {
 	for i, l := range n.Layers {
 		if i >= len(weights) || weights[i] == nil {
 			continue
@@ -46,13 +46,13 @@ func (n *Neural) ApplyWeights(weights [][][][]Deepfloat64) {
 }
 
 // Weights returns all weights in sequence
-func (n *Neural) Weights() [][][][]Deepfloat64 {
-	weights := make([][][][]Deepfloat64, len(n.Layers))
+func (n *Neural) Weights() [][][][]float64 {
+	weights := make([][][][]float64, len(n.Layers))
 	for i, l := range n.Layers {
 		if l.S != SynapseTypeTabulated {
-			weights[i] = make([][][]Deepfloat64, len(l.Neurons))
+			weights[i] = make([][][]float64, len(l.Neurons))
 			for j, neuron := range l.Neurons {
-				weights[i][j] = make([][]Deepfloat64, len(neuron.AnalyticIn))
+				weights[i][j] = make([][]float64, len(neuron.AnalyticIn))
 				for k, in := range neuron.AnalyticIn {
 					weights[i][j][k] = in.GetWeights()
 				}
@@ -234,7 +234,7 @@ func Load(path string) (*Neural, error) {
 		if l.S != SynapseTypeTabulated {
 			for _, neuron := range l.Neurons {
 				for _, in := range neuron.AnalyticIn {
-					var w []Deepfloat64
+					var w []float64
 					if err := dec.Decode(&w); err != nil {
 						return nil, err
 					}

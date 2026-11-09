@@ -7,15 +7,15 @@ import (
 )
 
 func Test_ArgMax(t *testing.T) {
-	s := []Deepfloat64{DF(5.0), DF(10.0), DF(0.0)}
+	s := []float64{DF(5.0), DF(10.0), DF(0.0)}
 	assert.Equal(t, 1, ArgMax(s))
 }
 
 func Test_Sum(t *testing.T) {
-	s := []Deepfloat64{DF(5.0), DF(10.0), DF(0.0)}
+	s := []float64{DF(5.0), DF(10.0), DF(0.0)}
 	assert.Equal(t, DF(15.0), Sum(s))
 
-	s2 := []Deepfloat64{}
+	s2 := []float64{}
 	assert.Equal(t, DF(0.0), Sum(s2))
 }
 

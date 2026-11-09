@@ -12,17 +12,17 @@ import (
 func Test_BoundedRegression(t *testing.T) {
 	Rand.Seed(0)
 
-	funcs := []func(Deepfloat64) Deepfloat64{
-		func(x Deepfloat64) Deepfloat64 { return DF(math.Sin(Float64(x))) },
-		func(x Deepfloat64) Deepfloat64 { return DF(math.Pow(Float64(x), 2)) },
-		func(x Deepfloat64) Deepfloat64 { return DF(math.Sqrt(Float64(x))) },
+	funcs := []func(float64) float64{
+		func(x float64) float64 { return DF(math.Sin(x)) },
+		func(x float64) float64 { return DF(math.Pow(x, 2)) },
+		func(x float64) float64 { return DF(math.Sqrt(x)) },
 	}
 
 	for z, f := range funcs {
 
 		data := Examples{}
 		for i := 0.0; i < 1; i += 0.05 {
-			data = append(data, Example{Input: []Deepfloat64{DF(i)}, Response: []Deepfloat64{f(DF(i))}})
+			data = append(data, Example{Input: []float64{DF(i)}, Response: []float64{f(DF(i))}})
 		}
 		n := NewNeural(&Config{
 			Inputs:  1,
@@ -32,10 +32,10 @@ func Test_BoundedRegression(t *testing.T) {
 		trainer := NewTrainer(n.Config.LossPrecision, 100, runtime.NumCPU())
 		trainer.Train(n, data, nil, 5)
 
-		tests := []Deepfloat64{DF(0.0), DF(0.1), DF(0.25), DF(0.5), DF(0.75), DF(0.9)}
+		tests := []float64{DF(0.0), DF(0.1), DF(0.25), DF(0.5), DF(0.75), DF(0.9)}
 		for _, x := range tests {
-			predict := Float64(n.Predict([]Deepfloat64{x})[0])
-			assert.InEpsilon(t, Float64(f(x))+1, predict+1, 0.1, "Response: %v; Predict: %v | %v; %v", f(x), predict, x, z)
+			predict := n.Predict([]float64{x})[0]
+			assert.InEpsilon(t, f(x)+1, predict+1, 0.1, "Response: %v; Predict: %v | %v; %v", f(x), predict, x, z)
 		}
 	}
 }
@@ -46,7 +46,7 @@ func Test_RegressionLinearOuts(t *testing.T) {
 	squares := Examples{}
 
 	for i := 0.0; i < 100.0; i++ {
-		squares = append(squares, Example{Input: []Deepfloat64{DF(i)}, Response: []Deepfloat64{DF(math.Sqrt(1 + i))}})
+		squares = append(squares, Example{Input: []float64{DF(i)}, Response: []float64{DF(math.Sqrt(1 + i))}})
 	}
 
 	n := NewNeural(&Config{
@@ -59,7 +59,7 @@ func Test_RegressionLinearOuts(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		x := DF(float64(Rand.Intn(99) + 1))
-		assert.InEpsilon(t, math.Sqrt(Float64(x)+1)+1, Float64(n.Predict([]Deepfloat64{x})[0])+1, 0.1, "for %+v want: %+v have: %+v\n", x, math.Sqrt(Float64(x))+1, Float64(n.Predict([]Deepfloat64{x})[0])+1)
+		assert.InEpsilon(t, math.Sqrt(x+1)+1, n.Predict([]float64{x})[0]+1, 0.1, "for %+v want: %+v have: %+v\n", x, math.Sqrt(x)+1, n.Predict([]float64{x})[0]+1)
 	}
 }
 
@@ -67,11 +67,11 @@ func Test_Training(t *testing.T) {
 	Rand.Seed(0)
 
 	data := Examples{
-		{[]Deepfloat64{DF(0.1)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(0.1)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(0.1)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(0.9)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(0.9)}, []Deepfloat64{DF(1)}},
+		{[]float64{DF(0.1)}, []float64{DF(0)}},
+		{[]float64{DF(0.1)}, []float64{DF(0)}},
+		{[]float64{DF(0.1)}, []float64{DF(0)}},
+		{[]float64{DF(0.9)}, []float64{DF(1)}},
+		{[]float64{DF(0.9)}, []float64{DF(1)}},
 	}
 
 	n := NewNeural(&Config{
@@ -82,26 +82,26 @@ func Test_Training(t *testing.T) {
 	trainer := NewTrainer(n.Config.LossPrecision, 0, runtime.NumCPU())
 	trainer.Train(n, data, nil, 5)
 
-	v := n.Predict([]Deepfloat64{DF(0)})
-	assert.InEpsilon(t, 1.1, Float64(v[0])+1, 0.1)
-	v = n.Predict([]Deepfloat64{DF(1)})
-	assert.InEpsilon(t, 1.9, Float64(v[0])+1, 0.1)
+	v := n.Predict([]float64{DF(0)})
+	assert.InEpsilon(t, 1.1, v[0]+1, 0.1)
+	v = n.Predict([]float64{DF(1)})
+	assert.InEpsilon(t, 1.9, v[0]+1, 0.1)
 }
 
 var data Examples
 
 func init() {
 	data = []Example{
-		{[]Deepfloat64{DF(2.7810836), DF(2.550537003)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(1.465489372), DF(2.362125076)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(3.396561688), DF(4.400293529)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(1.38807019), DF(1.850220317)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(3.06407232), DF(3.005305973)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(7.627531214), DF(2.759262235)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(5.332441248), DF(2.088626775)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(6.922596716), DF(1.77106367)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(8.675418651), DF(-0.242068655)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(7.673756466), DF(3.508563011)}, []Deepfloat64{DF(1)}},
+		{[]float64{DF(2.7810836), DF(2.550537003)}, []float64{DF(0)}},
+		{[]float64{DF(1.465489372), DF(2.362125076)}, []float64{DF(0)}},
+		{[]float64{DF(3.396561688), DF(4.400293529)}, []float64{DF(0)}},
+		{[]float64{DF(1.38807019), DF(1.850220317)}, []float64{DF(0)}},
+		{[]float64{DF(3.06407232), DF(3.005305973)}, []float64{DF(0)}},
+		{[]float64{DF(7.627531214), DF(2.759262235)}, []float64{DF(1)}},
+		{[]float64{DF(5.332441248), DF(2.088626775)}, []float64{DF(1)}},
+		{[]float64{DF(6.922596716), DF(1.77106367)}, []float64{DF(1)}},
+		{[]float64{DF(8.675418651), DF(-0.242068655)}, []float64{DF(1)}},
+		{[]float64{DF(7.673756466), DF(3.508563011)}, []float64{DF(1)}},
 	}
 }
 
@@ -117,7 +117,7 @@ func Test_Prediction(t *testing.T) {
 	trainer.Train(n, data, data, 15)
 
 	for _, d := range data {
-		assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)
+		assert.InEpsilon(t, n.Predict(d.Input)[0]+1, d.Response[0]+1, 0.1)
 	}
 }
 
@@ -133,8 +133,8 @@ func Test_CrossVal(t *testing.T) {
 	trainer.Train(n, data, data, 15)
 
 	for _, d := range data {
-		assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)
-		assert.InEpsilon(t, 1, Float64(crossValidate(n, data))+1, 0.01)
+		assert.InEpsilon(t, n.Predict(d.Input)[0]+1, d.Response[0]+1, 0.1)
+		assert.InEpsilon(t, 1, crossValidate(n, data)+1, 0.01)
 	}
 }
 
@@ -142,16 +142,16 @@ func Test_MultiClass(t *testing.T) {
 	Rand.Seed(0)
 
 	var data = []Example{
-		{[]Deepfloat64{DF(2.7810836), DF(2.550537003)}, []Deepfloat64{DF(0.9), DF(0.1)}},
-		{[]Deepfloat64{DF(1.465489372), DF(2.362125076)}, []Deepfloat64{DF(0.9), DF(0.1)}},
-		{[]Deepfloat64{DF(3.396561688), DF(4.400293529)}, []Deepfloat64{DF(0.9), DF(0.1)}},
-		{[]Deepfloat64{DF(1.38807019), DF(1.850220317)}, []Deepfloat64{DF(0.9), DF(0.1)}},
-		{[]Deepfloat64{DF(3.06407232), DF(3.005305973)}, []Deepfloat64{DF(0.9), DF(0.1)}},
-		{[]Deepfloat64{DF(7.627531214), DF(2.759262235)}, []Deepfloat64{DF(0.1), DF(0.9)}},
-		{[]Deepfloat64{DF(5.332441248), DF(2.088626775)}, []Deepfloat64{DF(0.1), DF(0.9)}},
-		{[]Deepfloat64{DF(6.922596716), DF(1.77106367)}, []Deepfloat64{DF(0.1), DF(0.9)}},
-		{[]Deepfloat64{DF(8.675418651), DF(-0.242068655)}, []Deepfloat64{DF(0.1), DF(0.9)}},
-		{[]Deepfloat64{DF(7.673756466), DF(3.508563011)}, []Deepfloat64{DF(0.1), DF(0.9)}},
+		{[]float64{DF(2.7810836), DF(2.550537003)}, []float64{DF(0.9), DF(0.1)}},
+		{[]float64{DF(1.465489372), DF(2.362125076)}, []float64{DF(0.9), DF(0.1)}},
+		{[]float64{DF(3.396561688), DF(4.400293529)}, []float64{DF(0.9), DF(0.1)}},
+		{[]float64{DF(1.38807019), DF(1.850220317)}, []float64{DF(0.9), DF(0.1)}},
+		{[]float64{DF(3.06407232), DF(3.005305973)}, []float64{DF(0.9), DF(0.1)}},
+		{[]float64{DF(7.627531214), DF(2.759262235)}, []float64{DF(0.1), DF(0.9)}},
+		{[]float64{DF(5.332441248), DF(2.088626775)}, []float64{DF(0.1), DF(0.9)}},
+		{[]float64{DF(6.922596716), DF(1.77106367)}, []float64{DF(0.1), DF(0.9)}},
+		{[]float64{DF(8.675418651), DF(-0.242068655)}, []float64{DF(0.1), DF(0.9)}},
+		{[]float64{DF(7.673756466), DF(3.508563011)}, []float64{DF(0.1), DF(0.9)}},
 	}
 
 	n := NewNeural(&Config{
@@ -167,13 +167,13 @@ func Test_MultiClass(t *testing.T) {
 
 	for _, d := range data {
 		est := n.Predict(d.Input)
-		assert.InEpsilon(t, 1.0, Float64(Sum(est)), 0.002)
-		if Float64(d.Response[0]) == 1.0 {
-			assert.InEpsilon(t, Float64(n.Predict(d.Input)[0])+1, Float64(d.Response[0])+1, 0.1)
+		assert.InEpsilon(t, 1.0, Sum(est), 0.002)
+		if d.Response[0] == 1.0 {
+			assert.InEpsilon(t, n.Predict(d.Input)[0]+1, d.Response[0]+1, 0.1)
 		} else {
-			assert.InEpsilon(t, Float64(n.Predict(d.Input)[1])+1, Float64(d.Response[1])+1, 0.1)
+			assert.InEpsilon(t, n.Predict(d.Input)[1]+1, d.Response[1]+1, 0.1)
 		}
-		assert.InEpsilon(t, 1, Float64(crossValidate(n, data))+1, 0.01)
+		assert.InEpsilon(t, 1, crossValidate(n, data)+1, 0.01)
 	}
 
 }
@@ -186,10 +186,10 @@ func Test_or(t *testing.T) {
 		Outputs: 1,
 	})
 	permutations := Examples{
-		{[]Deepfloat64{DF(0), DF(0)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(1), DF(0)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(0), DF(1)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(1), DF(1)}, []Deepfloat64{DF(1)}},
+		{[]float64{DF(0), DF(0)}, []float64{DF(0)}},
+		{[]float64{DF(1), DF(0)}, []float64{DF(1)}},
+		{[]float64{DF(0), DF(1)}, []float64{DF(1)}},
+		{[]float64{DF(1), DF(1)}, []float64{DF(1)}},
 	}
 
 	trainer := NewTrainer(n.Config.LossPrecision, 10, runtime.NumCPU())
@@ -197,7 +197,7 @@ func Test_or(t *testing.T) {
 	trainer.Train(n, permutations, permutations, 25)
 
 	for _, perm := range permutations {
-		assert.Equal(t, Float64(Round(n.Predict(perm.Input)[0])), Float64(perm.Response[0]))
+		assert.Equal(t, Round(n.Predict(perm.Input)[0]), perm.Response[0])
 	}
 }
 
@@ -208,17 +208,17 @@ func Test_xor(t *testing.T) {
 		Outputs: 1,
 	})
 	permutations := Examples{
-		{[]Deepfloat64{DF(0), DF(0)}, []Deepfloat64{DF(0)}},
-		{[]Deepfloat64{DF(1), DF(0)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(0), DF(1)}, []Deepfloat64{DF(1)}},
-		{[]Deepfloat64{DF(1), DF(1)}, []Deepfloat64{DF(0)}},
+		{[]float64{DF(0), DF(0)}, []float64{DF(0)}},
+		{[]float64{DF(1), DF(0)}, []float64{DF(1)}},
+		{[]float64{DF(0), DF(1)}, []float64{DF(1)}},
+		{[]float64{DF(1), DF(1)}, []float64{DF(0)}},
 	}
 
 	trainer := NewTrainer(n.Config.LossPrecision, 50, runtime.NumCPU())
 	trainer.Train(n, permutations, permutations, 500)
 
 	for _, perm := range permutations {
-		assert.InEpsilon(t, Float64(n.Predict(perm.Input)[0])+1, Float64(perm.Response[0])+1, 0.2, "input: %+v; want: %+v have: %+v\n", perm.Input, Float64(n.Predict(perm.Input)[0])+1, Float64(perm.Response[0])+1)
+		assert.InEpsilon(t, n.Predict(perm.Input)[0]+1, perm.Response[0]+1, 0.2, "input: %+v; want: %+v have: %+v\n", perm.Input, n.Predict(perm.Input)[0]+1, perm.Response[0]+1)
 	}
 }
 
@@ -231,10 +231,10 @@ func Test_essential(t *testing.T) {
 		LossPrecision: 12,
 	})
 	permutations := Examples{
-		{[]Deepfloat64{DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.9), DF(0.1)}, []Deepfloat64{DF(0.9)}},
-		{[]Deepfloat64{DF(0.1), DF(0.9)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.9), DF(0.9)}, []Deepfloat64{DF(0.9)}},
+		{[]float64{DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.9), DF(0.1)}, []float64{DF(0.9)}},
+		{[]float64{DF(0.1), DF(0.9)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.9), DF(0.9)}, []float64{DF(0.9)}},
 	}
 
 	trainer := NewTrainer(n.Config.LossPrecision, 1000, runtime.NumCPU())
@@ -249,7 +249,7 @@ func Test_essential(t *testing.T) {
 	trainer.Save("essential-test.trainer")
 
 	for _, perm := range permutations {
-		assert.InEpsilon(t, Float64(n.Predict(perm.Input)[0])+1, Float64(perm.Response[0])+1, 0.2, "input: %+v; want: %+v have: %+v\n", perm.Input, Float64(n.Predict(perm.Input)[0])+1, Float64(perm.Response[0])+1)
+		assert.InEpsilon(t, n.Predict(perm.Input)[0]+1, perm.Response[0]+1, 0.2, "input: %+v; want: %+v have: %+v\n", perm.Input, n.Predict(perm.Input)[0]+1, perm.Response[0]+1)
 	}
 }
 
@@ -262,10 +262,10 @@ func Test_essential_tabulated(t *testing.T) {
 		LossPrecision: 12,
 	})
 	permutations := Examples{
-		{[]Deepfloat64{DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.9), DF(0.1)}, []Deepfloat64{DF(0.9)}},
-		{[]Deepfloat64{DF(0.1), DF(0.9)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.9), DF(0.9)}, []Deepfloat64{DF(0.9)}},
+		{[]float64{DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.9), DF(0.1)}, []float64{DF(0.9)}},
+		{[]float64{DF(0.1), DF(0.9)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.9), DF(0.9)}, []float64{DF(0.9)}},
 	}
 
 	trainer := NewTrainer(n.Config.LossPrecision, 1000, runtime.NumCPU())
@@ -281,7 +281,7 @@ func Test_essential_tabulated(t *testing.T) {
 	trainer.Save("essential-tabulated-test.trainer")
 
 	for _, perm := range permutations {
-		assert.InEpsilon(t, Float64(n.Predict(perm.Input)[0])+1, Float64(perm.Response[0])+1, 0.2, "input: %+v; want: %+v have: %+v\n", perm.Input, Float64(n.Predict(perm.Input)[0])+1, Float64(perm.Response[0])+1)
+		assert.InEpsilon(t, n.Predict(perm.Input)[0]+1, perm.Response[0]+1, 0.2, "input: %+v; want: %+v have: %+v\n", perm.Input, n.Predict(perm.Input)[0]+1, perm.Response[0]+1)
 	}
 }
 
@@ -296,71 +296,71 @@ func Test_RHW(t *testing.T) {
 	}
 	n := NewNeural(&c)
 	permutations := Examples{
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
 
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(.5)}},
 	}
 
 	n.SaveReadable("rhw-test-pre.neural")
@@ -372,8 +372,8 @@ func Test_RHW(t *testing.T) {
 
 	n.Dot("rhw-test.dot")
 	for _, p := range permutations {
-		predict := Float64(n.Predict(p.Input)[0])
-		assert.InEpsilon(t, 1+Float64(p.Response[0]), 1+predict, 0.35, "Response: %v; Predict: %v | %v", p.Response[0], predict, p.Input)
+		predict := n.Predict(p.Input)[0]
+		assert.InEpsilon(t, 1+p.Response[0], 1+predict, 0.35, "Response: %v; Predict: %v | %v", p.Response[0], predict, p.Input)
 	}
 	n.SaveReadable("rhw-test-post.neural")
 
@@ -402,71 +402,71 @@ func Test_RHW_tabulated(t *testing.T) {
 	}
 	n := NewNeural(&c)
 	permutations := Examples{
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(.5)}},
+		{[]float64{DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
 
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(.5)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []Deepfloat64{DF(0.1)}},
-		{[]Deepfloat64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []Deepfloat64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(.5)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1), DF(0.5)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.1)}, []float64{DF(0.1)}},
+		{[]float64{DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5), DF(0.5)}, []float64{DF(.5)}},
 	}
 
 	n.SaveReadable("rhw-tabled-test-pre.neural")
@@ -479,8 +479,8 @@ func Test_RHW_tabulated(t *testing.T) {
 	n.Net("rhw-tabled-test.net")
 	n.Dot("rhw-tabled-test.dot")
 	for _, p := range permutations {
-		predict := Float64(n.Predict(p.Input)[0])
-		assert.InEpsilon(t, 1+Float64(p.Response[0]), 1+predict, 0.35, "Response: %v; Predict: %v | %v", p.Response[0], predict, p.Input)
+		predict := n.Predict(p.Input)[0]
+		assert.InEpsilon(t, 1+p.Response[0], 1+predict, 0.35, "Response: %v; Predict: %v | %v", p.Response[0], predict, p.Input)
 	}
 	n.SaveReadable("rhw-tabled-test-post.neural")
 
@@ -500,7 +500,7 @@ func Test_Trainer_OptionsAndEdgeCases(t *testing.T) {
 	})
 
 	// Train with Smooth = true
-	ex := Examples{{Input: []Deepfloat64{DF(0.1)}, Response: []Deepfloat64{DF(0.2)}}}
+	ex := Examples{{Input: []float64{DF(0.1)}, Response: []float64{DF(0.2)}}}
 	assert.NotPanics(t, func() {
 		trainer.Train(n, ex, ex, 1)
 	})

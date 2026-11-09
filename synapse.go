@@ -18,7 +18,7 @@ const (
 type SynapseTabulated struct {
 	direct  *tabulatedfunction.TabulatedFunction
 	Up      *Neuron
-	In, Out Deepfloat64
+	In, Out float64
 	Tag     string
 }
 
@@ -60,12 +60,12 @@ func (s *SynapseTabulated) RefireT(trapolation tabulatedfunction.Trapolation) {
 	s.Out = DF(s.direct.Trapolate(float64(s.In), trapolation))
 }
 
-func (s *SynapseTabulated) Fire(value Deepfloat64) {
+func (s *SynapseTabulated) Fire(value float64) {
 	s.In = value
 	s.Refire()
 }
 
-func (s *SynapseTabulated) FireT(value Deepfloat64, trapolation tabulatedfunction.Trapolation) {
+func (s *SynapseTabulated) FireT(value float64, trapolation tabulatedfunction.Trapolation) {
 	s.In = value
 	s.RefireT(trapolation)
 }
@@ -86,11 +86,11 @@ func (s *SynapseTabulated) Clear() {
 	s.direct.Clear()
 }
 
-func (s *SynapseTabulated) GetIn() Deepfloat64 {
+func (s *SynapseTabulated) GetIn() float64 {
 	return s.In
 }
 
-func (s *SynapseTabulated) GetOut() Deepfloat64 {
+func (s *SynapseTabulated) GetOut() float64 {
 	return s.Out
 }
 
@@ -102,7 +102,7 @@ func (s *SynapseTabulated) GetUp() *Neuron {
 	return s.Up
 }
 
-func (s *SynapseTabulated) AddPoint(x, y Deepfloat64, it uint32) {
+func (s *SynapseTabulated) AddPoint(x, y float64, it uint32) {
 	valY := y
 	if valY < 0 {
 		valY = DF(0)
@@ -110,12 +110,12 @@ func (s *SynapseTabulated) AddPoint(x, y Deepfloat64, it uint32) {
 	s.direct.AddPoint(float64(x), float64(valY), it)
 }
 
-func (s *SynapseTabulated) Trapolate(x Deepfloat64, trapolation tabulatedfunction.Trapolation) Deepfloat64 {
+func (s *SynapseTabulated) Trapolate(x float64, trapolation tabulatedfunction.Trapolation) float64 {
 	return DF(s.direct.Trapolate(float64(x), trapolation))
 }
 
 // GetPoint() returns n-th point in Tabulated activation
-func (s *SynapseTabulated) GetPoint(i int) (Deepfloat64, Deepfloat64) {
+func (s *SynapseTabulated) GetPoint(i int) (float64, float64) {
 	return DF(s.direct.X[i]), DF(s.direct.Y[i])
 }
 
@@ -153,16 +153,16 @@ func (s *SynapseTabulated) Expand(n int) {
 }
 
 type SynapseAnalytic struct {
-	Weights []Deepfloat64
+	Weights []float64
 	Up      *Neuron
-	In, Out Deepfloat64
+	In, Out float64
 	Tag     string
 }
 
 // NewSynapseAnalytic returns a synapse with the weigths preset with specified initializer
 // and marked with specified tag
-func NewSynapseAnalytic(up *Neuron, degree int, init_weights []Deepfloat64, tag string) *SynapseAnalytic {
-	var weights = make([]Deepfloat64, degree+1)
+func NewSynapseAnalytic(up *Neuron, degree int, init_weights []float64, tag string) *SynapseAnalytic {
+	var weights = make([]float64, degree+1)
 
 	copy(weights, init_weights)
 
@@ -201,12 +201,12 @@ func (s *SynapseAnalytic) Refire() {
 	s.Out = out
 }
 
-func (s *SynapseAnalytic) Fire(value Deepfloat64) {
+func (s *SynapseAnalytic) Fire(value float64) {
 	s.In = value
 	s.Refire()
 }
 
-func (s *SynapseAnalytic) FireT(value Deepfloat64, trapolation tabulatedfunction.Trapolation) {
+func (s *SynapseAnalytic) FireT(value float64, trapolation tabulatedfunction.Trapolation) {
 	s.In = value
 	s.Refire()
 }
@@ -218,19 +218,19 @@ func (s *SynapseAnalytic) GetTag() string {
 	return s.Tag
 }
 
-func (s *SynapseAnalytic) SetWeight(k int, weight Deepfloat64) {
+func (s *SynapseAnalytic) SetWeight(k int, weight float64) {
 	s.Weights[k] = weight
 }
 
-func (s *SynapseAnalytic) GetWeight(k int) Deepfloat64 {
+func (s *SynapseAnalytic) GetWeight(k int) float64 {
 	return s.Weights[k]
 }
 
-func (s *SynapseAnalytic) GetIn() Deepfloat64 {
+func (s *SynapseAnalytic) GetIn() float64 {
 	return s.In
 }
 
-func (s *SynapseAnalytic) GetOut() Deepfloat64 {
+func (s *SynapseAnalytic) GetOut() float64 {
 	return s.Out
 }
 
@@ -238,11 +238,11 @@ func (s *SynapseAnalytic) Len() int {
 	return len(s.Weights)
 }
 
-func (s *SynapseAnalytic) SetWeights(w []Deepfloat64) {
+func (s *SynapseAnalytic) SetWeights(w []float64) {
 	s.Weights = w
 }
 
-func (s *SynapseAnalytic) GetWeights() []Deepfloat64 {
+func (s *SynapseAnalytic) GetWeights() []float64 {
 	return s.Weights
 }
 

@@ -28,7 +28,7 @@ func Test_Predict_Concurrent(t *testing.T) {
 		Outputs: 2,
 	})
 
-	input := []Deepfloat64{DF(0.3), DF(0.7)}
+	input := []float64{DF(0.3), DF(0.7)}
 	expected := n.Predict(input)
 
 	var wg sync.WaitGroup
@@ -60,7 +60,7 @@ func Test_Forward(t *testing.T) {
 	}
 	n := NewNeural(&c)
 
-	err := n.Forward([]Deepfloat64{DF(0.1), DF(0.2), DF(0.7)})
+	err := n.Forward([]float64{DF(0.1), DF(0.2), DF(0.7)})
 	assert.Nil(t, err)
 
 	// Verify that analytic synapses in Layer 0 were initialized with non-negative weights A
@@ -68,7 +68,7 @@ func Test_Forward(t *testing.T) {
 		for _, synapse := range neuron.AnalyticIn {
 			// For degree 1, the weight at index 1 corresponds to A (the slope)
 			A := synapse.GetWeight(1)
-			assert.GreaterOrEqual(t, Float64(A), 0.0, "Weight A should be non-negative")
+			assert.GreaterOrEqual(t, A, 0.0, "Weight A should be non-negative")
 		}
 	}
 
@@ -80,10 +80,10 @@ func Test_Forward(t *testing.T) {
 	// Therefore, its sum should be between (7 * 0.3) = 2.1 and (7 * 0.7) = 4.9.
 	// We check that the sum is within this range by asserting it's in the delta of the midpoint.
 	for _, neuron := range n.Layers[1].Neurons {
-		assert.InDelta(t, 3.5, Float64(neuron.Sum), 1.4, "Neuron sum is out of expected range")
+		assert.InDelta(t, 3.5, neuron.Sum, 1.4, "Neuron sum is out of expected range")
 	}
 
-	err = n.Forward([]Deepfloat64{DF(0.1), DF(0.2)})
+	err = n.Forward([]float64{DF(0.1), DF(0.2)})
 	assert.Error(t, err)
 }
 
@@ -147,7 +147,7 @@ func Test_InterpolateSin(t *testing.T) {
 
 	data := Examples{}
 	for i := 0.0; i < math.Pi; i += 0.2 {
-		data = append(data, Example{Input: []Deepfloat64{DF(i)}, Response: []Deepfloat64{DF(math.Sin(i))}})
+		data = append(data, Example{Input: []float64{DF(i)}, Response: []float64{DF(math.Sin(i))}})
 	}
 
 	n := NewNeural(&Config{
@@ -159,8 +159,8 @@ func Test_InterpolateSin(t *testing.T) {
 	trainer.Train(n, data, nil, 1000)
 
 	for i := 0.1; i < math.Pi; i += 0.2 {
-		res := n.Predict([]Deepfloat64{DF(i)})
-		assert.InDelta(t, math.Sin(i), Float64(res[0]), 0.1, "Failed for %f", i)
+		res := n.Predict([]float64{DF(i)})
+		assert.InDelta(t, math.Sin(i), res[0], 0.1, "Failed for %f", i)
 	}
 }
 
@@ -205,7 +205,7 @@ func Test_Neural_Polinate(t *testing.T) {
 
 		// Network must still predict cleanly after pollination
 		assert.NotPanics(t, func() {
-			out := n.Predict([]Deepfloat64{DF(0.5)})
+			out := n.Predict([]float64{DF(0.5)})
 			assert.Len(t, out, 2)
 		})
 	})
@@ -216,38 +216,38 @@ func Test_Neural_ForwardT_Trapolate(t *testing.T) {
 	n := NewNeural(&Config{Inputs: 2, Outputs: 1})
 
 	// ForwardT success
-	err := n.ForwardT([]Deepfloat64{DF(0.3), DF(0.4)}, tabulatedfunction.TrapolationLinear)
+	err := n.ForwardT([]float64{DF(0.3), DF(0.4)}, tabulatedfunction.TrapolationLinear)
 	assert.NoError(t, err)
 
 	// ForwardT dimension mismatch
-	err = n.ForwardT([]Deepfloat64{DF(0.3)}, tabulatedfunction.TrapolationLinear)
+	err = n.ForwardT([]float64{DF(0.3)}, tabulatedfunction.TrapolationLinear)
 	assert.Error(t, err)
 
 	// Trapolate success
-	out := n.Trapolate([]Deepfloat64{DF(0.3), DF(0.4)}, tabulatedfunction.TrapolationLinear)
+	out := n.Trapolate([]float64{DF(0.3), DF(0.4)}, tabulatedfunction.TrapolationLinear)
 	assert.Len(t, out, 1)
 
 	// Trapolate panic on invalid input length
 	assert.Panics(t, func() {
-		n.Trapolate([]Deepfloat64{DF(0.1)}, tabulatedfunction.TrapolationLinear)
+		n.Trapolate([]float64{DF(0.1)}, tabulatedfunction.TrapolationLinear)
 	})
 
 	// Predict panic on invalid input length
 	assert.Panics(t, func() {
-		n.Predict([]Deepfloat64{DF(0.1)})
+		n.Predict([]float64{DF(0.1)})
 	})
 
 	// PredictInto and TrapolateInto success & validation
-	buf := make([]Deepfloat64, 1)
-	assert.NoError(t, n.PredictInto([]Deepfloat64{DF(0.3), DF(0.4)}, buf))
+	buf := make([]float64, 1)
+	assert.NoError(t, n.PredictInto([]float64{DF(0.3), DF(0.4)}, buf))
 	assert.Equal(t, out[0], buf[0])
-	assert.Error(t, n.PredictInto([]Deepfloat64{DF(0.3)}, buf))
-	assert.Error(t, n.PredictInto([]Deepfloat64{DF(0.3), DF(0.4)}, make([]Deepfloat64, 2)))
+	assert.Error(t, n.PredictInto([]float64{DF(0.3)}, buf))
+	assert.Error(t, n.PredictInto([]float64{DF(0.3), DF(0.4)}, make([]float64, 2)))
 
-	assert.NoError(t, n.TrapolateInto([]Deepfloat64{DF(0.3), DF(0.4)}, buf, tabulatedfunction.TrapolationLinear))
+	assert.NoError(t, n.TrapolateInto([]float64{DF(0.3), DF(0.4)}, buf, tabulatedfunction.TrapolationLinear))
 	assert.Equal(t, out[0], buf[0])
-	assert.Error(t, n.TrapolateInto([]Deepfloat64{DF(0.3)}, buf, tabulatedfunction.TrapolationLinear))
-	assert.Error(t, n.TrapolateInto([]Deepfloat64{DF(0.3), DF(0.4)}, make([]Deepfloat64, 2), tabulatedfunction.TrapolationLinear))
+	assert.Error(t, n.TrapolateInto([]float64{DF(0.3)}, buf, tabulatedfunction.TrapolationLinear))
+	assert.Error(t, n.TrapolateInto([]float64{DF(0.3), DF(0.4)}, make([]float64, 2), tabulatedfunction.TrapolationLinear))
 }
 
 func Test_Neural_Display_And_Utils(t *testing.T) {
@@ -263,7 +263,7 @@ func Test_Neural_Display_And_Utils(t *testing.T) {
 	assert.Contains(t, n.Layers[0].String(), "Layer(Number: 0")
 
 	// TotalError
-	assert.Equal(t, DF(6.0), TotalError([]Deepfloat64{DF(1.5), DF(2.0), DF(2.5)}))
+	assert.Equal(t, DF(6.0), TotalError([]float64{DF(1.5), DF(2.0), DF(2.5)}))
 
 	// Smooth and DrawPS
 	assert.NotPanics(t, func() {
@@ -275,25 +275,10 @@ func Test_Neural_Display_And_Utils(t *testing.T) {
 
 func Test_Deepfloat64_Operations(t *testing.T) {
 	// NaN and Inf handling in DF constructor
-	assert.Equal(t, Deepfloat64(0.0), DF(math.NaN()))
-	assert.Equal(t, Deepfloat64(0.0), DF(math.Inf(1)))
-	assert.Equal(t, Deepfloat64(0.0), DF(math.Inf(-1)))
-	assert.Equal(t, Deepfloat64(3.14), DF(3.14))
-
-	// Basic arithmetic
-	assert.Equal(t, DF(5.0), Add(DF(2.0), DF(3.0)))
-	assert.Equal(t, DF(-1.0), Sub(DF(2.0), DF(3.0)))
-	assert.Equal(t, DF(6.0), Mul(DF(2.0), DF(3.0)))
-	assert.Equal(t, DF(2.0), Div(DF(6.0), DF(3.0)))
-
-	// GobEncode / GobDecode
-	val := DF(123.456)
-	encoded, err := val.GobEncode()
-	assert.NoError(t, err)
-	var decoded Deepfloat64
-	assert.NoError(t, decoded.GobDecode(encoded))
-	assert.Equal(t, val, decoded)
-	assert.Error(t, decoded.GobDecode([]byte{1, 2, 3}))
+	assert.Equal(t, float64(0.0), DF(math.NaN()))
+	assert.Equal(t, float64(0.0), DF(math.Inf(1)))
+	assert.Equal(t, float64(0.0), DF(math.Inf(-1)))
+	assert.Equal(t, float64(3.14), DF(3.14))
 }
 
 func Test_Neural_Expand(t *testing.T) {
@@ -324,7 +309,7 @@ func Test_Neural_Expand(t *testing.T) {
 
 		assert.Greater(t, synapse.Len(), lenBefore, "Expand should increase the number of points in tabulated synapses")
 		assert.NotPanics(t, func() {
-			out := n.Predict([]Deepfloat64{DF(0.2)})
+			out := n.Predict([]float64{DF(0.2)})
 			assert.Len(t, out, 1)
 		})
 	})

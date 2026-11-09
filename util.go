@@ -3,7 +3,7 @@ package kafn
 import "math"
 
 // ArgMax is the index of the largest element
-func ArgMax(xx []Deepfloat64) int {
+func ArgMax(xx []float64) int {
 	if len(xx) == 0 {
 		return -1
 	}
@@ -17,16 +17,15 @@ func ArgMax(xx []Deepfloat64) int {
 }
 
 // Sum is sum
-func Sum(xx []Deepfloat64) (sum Deepfloat64) {
-	sum = DF(0)
+func Sum(xx []float64) (sum float64) {
 	for _, x := range xx {
-		sum = Add(sum, x)
+		sum += x
 	}
 	return
 }
 
 // Round to nearest integer
-func Round(x Deepfloat64) Deepfloat64 {
+func Round(x float64) float64 {
 	return DF(math.Floor(float64(x) + .5))
 }
 

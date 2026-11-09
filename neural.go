@@ -16,7 +16,7 @@ const Eps = 1e-16
 type Neural struct {
 	Layers     []*Layer
 	Config     *Config
-	TotalError Deepfloat64
+	TotalError float64
 	initOnce   sync.Once
 	ctxPool    sync.Pool
 }
@@ -42,15 +42,15 @@ type Config struct {
 	// TrapolationLinear by default
 	Trapolation tabulatedfunction.Trapolation
 	// Sum of weights
-	sum_of_weights Deepfloat64
+	sum_of_weights float64
 }
 
 // Context holds transient execution state for forward passes and predictions.
 // Using a Context decouples transient activations from Neural/Neuron/Synapse structs,
 // enabling thread-safe concurrent evaluation and parallel training.
 type Context struct {
-	LayerSums   [][]Deepfloat64 // [layer][neuron]
-	TabulatedIn [][]Deepfloat64 // [outputNeuron][inputNeuron] Out
+	LayerSums   [][]float64 // [layer][neuron]
+	TabulatedIn [][]float64 // [outputNeuron][inputNeuron] Out
 }
 
 // NewNeural returns a new neural network
@@ -105,18 +105,18 @@ func (n *Neural) getContext() *Context {
 // NewContext creates an isolated execution buffer sized for the network topology.
 func (n *Neural) NewContext() *Context {
 	ctx := &Context{
-		LayerSums:   make([][]Deepfloat64, len(n.Layers)),
-		TabulatedIn: make([][]Deepfloat64, 0),
+		LayerSums:   make([][]float64, len(n.Layers)),
+		TabulatedIn: make([][]float64, 0),
 	}
 	for i, l := range n.Layers {
-		ctx.LayerSums[i] = make([]Deepfloat64, len(l.Neurons))
+		ctx.LayerSums[i] = make([]float64, len(l.Neurons))
 	}
 	if len(n.Layers) > 1 {
 		l1 := n.Layers[1]
-		ctx.TabulatedIn = make([][]Deepfloat64, len(l1.Neurons))
+		ctx.TabulatedIn = make([][]float64, len(l1.Neurons))
 		l0Len := len(n.Layers[0].Neurons)
 		for i := range l1.Neurons {
-			ctx.TabulatedIn[i] = make([]Deepfloat64, l0Len)
+			ctx.TabulatedIn[i] = make([]float64, l0Len)
 		}
 	}
 	return ctx
@@ -141,7 +141,7 @@ func (n *Neural) fire() {
 	if len(n.Layers) > 1 {
 		l0 := n.Layers[0]
 		for _, neuron := range n.Layers[1].Neurons {
-			var sum Deepfloat64
+			var sum float64
 			for i, s := range neuron.TabulatedIn {
 				s.Fire(l0.Neurons[i].Sum)
 				sum += s.Out
@@ -158,7 +158,7 @@ func (n *Neural) fireT(trapolation tabulatedfunction.Trapolation) {
 	if len(n.Layers) > 1 {
 		l0 := n.Layers[0]
 		for _, neuron := range n.Layers[1].Neurons {
-			var sum Deepfloat64
+			var sum float64
 			for i, s := range neuron.TabulatedIn {
 				s.FireT(l0.Neurons[i].Sum, trapolation)
 				sum += s.Out
@@ -169,7 +169,7 @@ func (n *Neural) fireT(trapolation tabulatedfunction.Trapolation) {
 }
 
 // ForwardCtx computes a forward pass using an explicit execution context without mutating node state.
-func (n *Neural) ForwardCtx(input []Deepfloat64, ctx *Context) error {
+func (n *Neural) ForwardCtx(input []float64, ctx *Context) error {
 	l := len(input)
 	if l != n.Config.Inputs {
 		return fmt.Errorf("invalid input dimension - expected: %d got: %d", n.Config.Inputs, len(input))
@@ -177,7 +177,7 @@ func (n *Neural) ForwardCtx(input []Deepfloat64, ctx *Context) error {
 	l0 := n.Layers[0]
 	l0Sums := ctx.LayerSums[0]
 	for neuronIdx, neuron := range l0.Neurons {
-		var sum Deepfloat64
+		var sum float64
 		for i, val := range input {
 			s := neuron.AnalyticIn[i]
 			nw := len(s.Weights)
@@ -198,10 +198,10 @@ func (n *Neural) ForwardCtx(input []Deepfloat64, ctx *Context) error {
 		l1 := n.Layers[1]
 		l1Sums := ctx.LayerSums[1]
 		for neuronIdx, neuron := range l1.Neurons {
-			var sum Deepfloat64
+			var sum float64
 			tabOut := ctx.TabulatedIn[neuronIdx]
 			for i, s := range neuron.TabulatedIn {
-				out := Deepfloat64(s.direct.F(float64(l0Sums[i])))
+				out := s.direct.F(l0Sums[i])
 				tabOut[i] = out
 				sum += out
 			}
@@ -212,7 +212,7 @@ func (n *Neural) ForwardCtx(input []Deepfloat64, ctx *Context) error {
 }
 
 // ForwardTCtx computes a forward pass with trapolation using an explicit execution context.
-func (n *Neural) ForwardTCtx(input []Deepfloat64, trapolation tabulatedfunction.Trapolation, ctx *Context) error {
+func (n *Neural) ForwardTCtx(input []float64, trapolation tabulatedfunction.Trapolation, ctx *Context) error {
 	l := len(input)
 	if l != n.Config.Inputs {
 		return fmt.Errorf("invalid input dimension - expected: %d got: %d", n.Config.Inputs, len(input))
@@ -220,7 +220,7 @@ func (n *Neural) ForwardTCtx(input []Deepfloat64, trapolation tabulatedfunction.
 	l0 := n.Layers[0]
 	l0Sums := ctx.LayerSums[0]
 	for neuronIdx, neuron := range l0.Neurons {
-		var sum Deepfloat64
+		var sum float64
 		for i, val := range input {
 			s := neuron.AnalyticIn[i]
 			nw := len(s.Weights)
@@ -241,10 +241,10 @@ func (n *Neural) ForwardTCtx(input []Deepfloat64, trapolation tabulatedfunction.
 		l1 := n.Layers[1]
 		l1Sums := ctx.LayerSums[1]
 		for neuronIdx, neuron := range l1.Neurons {
-			var sum Deepfloat64
+			var sum float64
 			tabOut := ctx.TabulatedIn[neuronIdx]
 			for i, s := range neuron.TabulatedIn {
-				out := Deepfloat64(s.direct.Trapolate(float64(l0Sums[i]), trapolation))
+				out := s.direct.Trapolate(l0Sums[i], trapolation)
 				tabOut[i] = out
 				sum += out
 			}
@@ -275,7 +275,7 @@ func (n *Neural) applyContext(ctx *Context) {
 }
 
 // Forward computes a forward pass and synchronizes neuron state
-func (n *Neural) Forward(input []Deepfloat64) error {
+func (n *Neural) Forward(input []float64) error {
 	ctx := n.getContext()
 	defer n.ctxPool.Put(ctx)
 	if err := n.ForwardCtx(input, ctx); err != nil {
@@ -286,7 +286,7 @@ func (n *Neural) Forward(input []Deepfloat64) error {
 }
 
 // ForwardT computes a forward pass with trapolation and synchronizes neuron state
-func (n *Neural) ForwardT(input []Deepfloat64, trapolation tabulatedfunction.Trapolation) error {
+func (n *Neural) ForwardT(input []float64, trapolation tabulatedfunction.Trapolation) error {
 	ctx := n.getContext()
 	defer n.ctxPool.Put(ctx)
 	if err := n.ForwardTCtx(input, trapolation, ctx); err != nil {
@@ -297,7 +297,7 @@ func (n *Neural) ForwardT(input []Deepfloat64, trapolation tabulatedfunction.Tra
 }
 
 // PredictIntoCtx computes a forward pass with ctx and copies the prediction into out.
-func (n *Neural) PredictIntoCtx(input []Deepfloat64, out []Deepfloat64, ctx *Context) error {
+func (n *Neural) PredictIntoCtx(input []float64, out []float64, ctx *Context) error {
 	if err := n.ForwardCtx(input, ctx); err != nil {
 		return err
 	}
@@ -312,7 +312,7 @@ func (n *Neural) PredictIntoCtx(input []Deepfloat64, out []Deepfloat64, ctx *Con
 
 // PredictInto computes a forward pass and copies the prediction into out.
 // PredictInto is thread-safe and reentrant across concurrent goroutines.
-func (n *Neural) PredictInto(input []Deepfloat64, out []Deepfloat64) error {
+func (n *Neural) PredictInto(input []float64, out []float64) error {
 	ctx := n.getContext()
 	defer n.ctxPool.Put(ctx)
 	return n.PredictIntoCtx(input, out, ctx)
@@ -320,9 +320,9 @@ func (n *Neural) PredictInto(input []Deepfloat64, out []Deepfloat64) error {
 
 // Predict computes a forward pass and returns a prediction
 // Predict is thread-safe and reentrant across concurrent goroutines.
-func (n *Neural) Predict(input []Deepfloat64) []Deepfloat64 {
+func (n *Neural) Predict(input []float64) []float64 {
 	outLayer := n.Layers[len(n.Layers)-1]
-	out := make([]Deepfloat64, len(outLayer.Neurons))
+	out := make([]float64, len(outLayer.Neurons))
 	if err := n.PredictInto(input, out); err != nil {
 		panic(fmt.Sprintf("prediction failed: %v", err))
 	}
@@ -330,7 +330,7 @@ func (n *Neural) Predict(input []Deepfloat64) []Deepfloat64 {
 }
 
 // TrapolateIntoCtx computes a forward pass with trapolation using ctx and copies prediction into out.
-func (n *Neural) TrapolateIntoCtx(input []Deepfloat64, out []Deepfloat64, trapolation tabulatedfunction.Trapolation, ctx *Context) error {
+func (n *Neural) TrapolateIntoCtx(input []float64, out []float64, trapolation tabulatedfunction.Trapolation, ctx *Context) error {
 	if err := n.ForwardTCtx(input, trapolation, ctx); err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func (n *Neural) TrapolateIntoCtx(input []Deepfloat64, out []Deepfloat64, trapol
 
 // TrapolateInto computes a forward pass with trapolation and copies the prediction into out.
 // TrapolateInto is thread-safe and reentrant across concurrent goroutines.
-func (n *Neural) TrapolateInto(input []Deepfloat64, out []Deepfloat64, trapolation tabulatedfunction.Trapolation) error {
+func (n *Neural) TrapolateInto(input []float64, out []float64, trapolation tabulatedfunction.Trapolation) error {
 	ctx := n.getContext()
 	defer n.ctxPool.Put(ctx)
 	return n.TrapolateIntoCtx(input, out, trapolation, ctx)
@@ -353,9 +353,9 @@ func (n *Neural) TrapolateInto(input []Deepfloat64, out []Deepfloat64, trapolati
 
 // Trapolate computes a forward pass with trapolation and returns a prediction
 // Trapolate is thread-safe and reentrant across concurrent goroutines.
-func (n *Neural) Trapolate(input []Deepfloat64, trapolation tabulatedfunction.Trapolation) []Deepfloat64 {
+func (n *Neural) Trapolate(input []float64, trapolation tabulatedfunction.Trapolation) []float64 {
 	outLayer := n.Layers[len(n.Layers)-1]
-	out := make([]Deepfloat64, len(outLayer.Neurons))
+	out := make([]float64, len(outLayer.Neurons))
 	if err := n.TrapolateInto(input, out, trapolation); err != nil {
 		panic(fmt.Sprintf("prediction failed: %v", err))
 	}
@@ -389,10 +389,10 @@ func (n *Neural) String() string {
 	return sb.String()
 }
 
-func TotalError(E []Deepfloat64) Deepfloat64 {
-	r := DF(0)
+func TotalError(E []float64) float64 {
+	var r float64
 	for _, x := range E {
-		r = Add(r, x)
+		r += x
 	}
 	return r
 }

@@ -45,77 +45,76 @@ const (
 
 // Loss is satisfied by loss functions
 type Loss interface {
-	F(estimate, ideal Deepfloat64) Deepfloat64
-	Cf(estimate, ideal [][]Deepfloat64) Deepfloat64
+	F(estimate, ideal float64) float64
+	Cf(estimate, ideal [][]float64) float64
 }
 
 // CrossEntropy is CE loss
 type CrossEntropy struct{}
 
 // F is MSE(...)
-func (l CrossEntropy) F(estimate, ideal Deepfloat64) Deepfloat64 {
-	d := Sub(estimate, ideal)
-	return Div(Mul(d, d), DF(2))
+func (l CrossEntropy) F(estimate, ideal float64) float64 {
+	d := estimate - ideal
+	return (d * d) * 0.5
 }
 
 // Cf is CE(...)
-func (l CrossEntropy) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
-
-	sum := DF(0)
+func (l CrossEntropy) Cf(estimate, ideal [][]float64) float64 {
+	var sum float64
 	for i := range estimate {
-		ce := DF(0)
+		var ce float64
 		for j := range estimate[i] {
-			ce = Add(ce, Mul(ideal[i][j], DF(math.Log(float64(estimate[i][j])))))
+			ce += ideal[i][j] * math.Log(estimate[i][j])
 		}
-
-		sum = Sub(sum, ce)
+		sum -= ce
 	}
-	return Div(sum, DF(float64(len(estimate))))
+	return sum / float64(len(estimate))
 }
 
 // BinaryCrossEntropy is binary CE loss
 type BinaryCrossEntropy struct{}
 
 // F is MSE(...)
-func (l BinaryCrossEntropy) F(estimate, ideal Deepfloat64) Deepfloat64 {
-	d := Sub(estimate, ideal)
-	return Div(Mul(d, d), DF(2))
+func (l BinaryCrossEntropy) F(estimate, ideal float64) float64 {
+	d := estimate - ideal
+	return (d * d) * 0.5
 }
 
 // Cf is CE(...)
-func (l BinaryCrossEntropy) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
-	epsilon := 1e-16
-	sum := DF(0)
+func (l BinaryCrossEntropy) Cf(estimate, ideal [][]float64) float64 {
+	const epsilon = 1e-16
+	var sum float64
 	for i := range estimate {
-		ce := DF(0)
+		var ce float64
 		for j := range estimate[i] {
-			// ce += ideal * log(est+eps) + (1-ideal)*log(1-est+eps)
-			term1 := Mul(ideal[i][j], DF(math.Log(float64(estimate[i][j])+epsilon)))
-			term2 := Mul(Sub(DF(1), ideal[i][j]), DF(math.Log(1.0-float64(estimate[i][j])+epsilon)))
-			ce = Add(ce, Add(term1, term2))
+			term1 := ideal[i][j] * math.Log(estimate[i][j]+epsilon)
+			term2 := (1.0 - ideal[i][j]) * math.Log(1.0-estimate[i][j]+epsilon)
+			ce += term1 + term2
 		}
-		sum = Sub(sum, ce)
+		sum -= ce
 	}
-	return Div(sum, DF(float64(len(estimate))))
+	return sum / float64(len(estimate))
 }
 
 // MeanSquared in MSE loss
 type MeanSquared struct{}
 
 // F is MSE(...)
-func (l MeanSquared) F(estimate, ideal Deepfloat64) Deepfloat64 {
-	d := Sub(estimate, ideal)
-	return Div(Mul(d, d), DF(2))
+func (l MeanSquared) F(estimate, ideal float64) float64 {
+	d := estimate - ideal
+	return (d * d) * 0.5
 }
 
 // Cf is MSE(...)
-func (l MeanSquared) Cf(estimate, ideal [][]Deepfloat64) Deepfloat64 {
-	sum := DF(0)
+func (l MeanSquared) Cf(estimate, ideal [][]float64) float64 {
+	var sum float64
 	for i := 0; i < len(estimate); i++ {
-		for j := 0; j < len(estimate[i]); j++ {
-			diff := Sub(estimate[i][j], ideal[i][j])
-			sum = Add(sum, Mul(diff, diff))
+		estRow := estimate[i]
+		idealRow := ideal[i]
+		for j := 0; j < len(estRow); j++ {
+			diff := estRow[j] - idealRow[j]
+			sum += diff * diff
 		}
 	}
-	return Div(sum, DF(float64(len(estimate)*len(estimate[0]))))
+	return sum / float64(len(estimate)*len(estimate[0]))
 }

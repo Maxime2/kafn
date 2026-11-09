@@ -2,8 +2,8 @@ package kafn
 
 // Example is an input-target pair
 type Example struct {
-	Input    []Deepfloat64
-	Response []Deepfloat64
+	Input    []float64
+	Response []float64
 }
 
 // Examples is a set of input-output pairs

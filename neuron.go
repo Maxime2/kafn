@@ -11,9 +11,9 @@ import (
 type Neuron struct {
 	AnalyticIn     []*SynapseAnalytic
 	TabulatedIn    []*SynapseTabulated
-	Ideal          Deepfloat64
-	Sum            Deepfloat64
-	MinSum, MaxSum Deepfloat64
+	Ideal          float64
+	Sum            float64
+	MinSum, MaxSum float64
 }
 
 // NewNeuron returns a neuron with the given activation
@@ -24,9 +24,9 @@ func NewNeuron() *Neuron {
 	}
 }
 
-func (n *Neuron) setSum(sum Deepfloat64) Deepfloat64 {
+func (n *Neuron) setSum(sum float64) float64 {
 	n.Sum = sum
-	val := Float64(n.Sum)
+	val := n.Sum
 	if math.IsNaN(val) || math.IsInf(val, 0) {
 		log.Printf("WARN: Invalid number (NaN/Inf) detected during neuron sum calculation. Resetting sum to 0.")
 		n.Sum = DF(0)
@@ -40,8 +40,8 @@ func (n *Neuron) setSum(sum Deepfloat64) Deepfloat64 {
 	return n.Sum
 }
 
-func (n *Neuron) calculateNeuronOutput() Deepfloat64 {
-	var sum Deepfloat64
+func (n *Neuron) calculateNeuronOutput() float64 {
+	var sum float64
 	for _, s := range n.AnalyticIn {
 		sum += s.Out
 	}
