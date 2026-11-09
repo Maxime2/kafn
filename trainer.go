@@ -72,7 +72,9 @@ func (t *OnlineTrainer) Train(n *Neural, examples, validation Examples, iteratio
 
 	t.internal = newTraining(n.Layers, n.Config.Loss)
 
-	t.printer.Init(n)
+	if t.verbosity > 0 && len(validation) > 0 {
+		t.printer.Init(n)
+	}
 
 	ts := time.Now()
 
