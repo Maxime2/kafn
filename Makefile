@@ -1,7 +1,7 @@
 
 
 benchmark:
-	go test -bench=. -benchmem -run=^$ ./...
+	go test -bench=. -benchmem -run=^Benchmark.*$ ./...
 
 cpu:
 	go test -bench=BenchmarkTrain -cpuprofile=cpu.pprof -run=^$
