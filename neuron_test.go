@@ -65,7 +65,7 @@ func Test_SynapseTabulated_Full(t *testing.T) {
 	assert.Equal(t, "tab-tag", syn.GetTag())
 	assert.Equal(t, parentNeuron, syn.GetUp())
 
-	// Negative Y clamp in AddPoint
+	// Negative Y support in AddPoint (unclamped)
 	syn.AddPoint(DF(0.5), DF(-1.0), 0)
 	assert.NotEmpty(t, syn.String())
 	assert.Equal(t, "[tabulated]", syn.WeightsString())
@@ -78,6 +78,24 @@ func Test_SynapseTabulated_Full(t *testing.T) {
 		syn.Epoch(1)
 		syn.Smooth()
 	})
+}
+
+func Test_SynapseTabulated_NegativeY(t *testing.T) {
+	parentNeuron := NewNeuron()
+	config := &Config{Trapolation: tabulatedfunction.TrapolationLinear, sum_of_weights: DF(1.0)}
+	syn := NewSynapseTabulated(config, parentNeuron, "test-neg")
+	syn.Clear()
+
+	syn.AddPoint(DF(0.2), DF(-1.5), 0)
+	syn.AddPoint(DF(0.8), DF(0.5), 0)
+
+	assert.Equal(t, 2, syn.Len())
+	x, y := syn.GetPoint(0)
+	assert.Equal(t, DF(0.2), x)
+	assert.Equal(t, DF(-1.5), y)
+
+	syn.Fire(DF(0.2))
+	assert.Equal(t, DF(-1.5), syn.GetOut())
 }
 
 func Test_Neuron_FireT_And_NanTolerance(t *testing.T) {

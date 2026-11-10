@@ -412,7 +412,6 @@ func (t *OnlineTrainer) update(neural *Neural, errors []float64) {
 }
 
 func (t *OnlineTrainer) computeSynapseUpdates(neural *Neural, errors []float64, ctx *Context, outLayerIdx int, buf []synapsePointUpdate) []synapsePointUpdate {
-	buf = buf[:0]
 	l := neural.Layers[outLayerIdx]
 	l0Sums := ctx.LayerSums[0]
 

@@ -108,11 +108,7 @@ func (s *SynapseTabulated) GetUp() *Neuron {
 }
 
 func (s *SynapseTabulated) AddPoint(x, y float64, it uint32) {
-	valY := y
-	if valY < 0 {
-		valY = DF(0)
-	}
-	s.direct.AddPoint(float64(x), float64(valY), it)
+	s.direct.AddPoint(x, y, it)
 }
 
 func (s *SynapseTabulated) Trapolate(x float64, trapolation tabulatedfunction.Trapolation) float64 {
