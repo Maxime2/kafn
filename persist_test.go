@@ -102,3 +102,48 @@ func Test_Marshal(t *testing.T) {
 		assert.Equal(t, pred1[i], pred2[i])
 	}
 }
+
+func Test_Save_EpochCheck(t *testing.T) {
+	Rand.Seed(0)
+	tmpfile, err := os.CreateTemp("", "test_epoch_*.network")
+	assert.NoError(t, err)
+	path := tmpfile.Name()
+	tmpfile.Close()
+	defer os.Remove(path)
+
+	// 1. Initial save with epoch 10
+	n := NewNeural(&Config{Inputs: 1, Outputs: 1, Epoch: 10})
+	err = n.Save(path)
+	assert.NoError(t, err)
+
+	loaded, err := Load(path)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(10), loaded.Config.Epoch)
+
+	// 2. Attempt save with epoch 5 (less than 10) - should NOT overwrite
+	nLess := NewNeural(&Config{Inputs: 1, Outputs: 1, Epoch: 5})
+	err = nLess.Save(path)
+	assert.NoError(t, err)
+
+	loaded, err = Load(path)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(10), loaded.Config.Epoch)
+
+	// 3. Attempt save with epoch 10 (equal to 10) - should NOT overwrite
+	nEqual := NewNeural(&Config{Inputs: 1, Outputs: 1, Epoch: 10})
+	err = nEqual.Save(path)
+	assert.NoError(t, err)
+
+	loaded, err = Load(path)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(10), loaded.Config.Epoch)
+
+	// 4. Attempt save with epoch 15 (greater than 10) - should overwrite
+	nGreater := NewNeural(&Config{Inputs: 1, Outputs: 1, Epoch: 15})
+	err = nGreater.Save(path)
+	assert.NoError(t, err)
+
+	loaded, err = Load(path)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(15), loaded.Config.Epoch)
+}

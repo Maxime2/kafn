@@ -157,6 +157,21 @@ type networkSaveData struct {
 
 // Save saves network into the file specified to be loaded later
 func (n *Neural) Save(path string) error {
+	if existingFile, err := os.Open(path); err == nil {
+		var existingData networkSaveData
+		dec := gob.NewDecoder(bufio.NewReader(existingFile))
+		decodeErr := dec.Decode(&existingData)
+		_ = existingFile.Close()
+		if decodeErr == nil && existingData.Config != nil {
+			var currentEpoch uint32
+			if n.Config != nil {
+				currentEpoch = n.Config.Epoch
+			}
+			if existingData.Config.Epoch >= currentEpoch {
+				return nil
+			}
+		}
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
