@@ -146,4 +146,20 @@ func Test_Save_EpochCheck(t *testing.T) {
 	loaded, err = Load(path)
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(15), loaded.Config.Epoch)
+
+	// 5. Attempt save with lower epoch (5 < 15) but changed configuration (e.g., Loss changed)
+	// Should overwrite anyway because Config changed.
+	nConfigChanged := NewNeural(&Config{
+		Inputs:  1,
+		Outputs: 1,
+		Epoch:   5,
+		Loss:    LossCrossEntropy,
+	})
+	err = nConfigChanged.Save(path)
+	assert.NoError(t, err)
+
+	loaded, err = Load(path)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(5), loaded.Config.Epoch)
+	assert.Equal(t, LossCrossEntropy, loaded.Config.Loss)
 }

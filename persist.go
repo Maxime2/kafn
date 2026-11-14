@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
 
@@ -155,6 +156,26 @@ type networkSaveData struct {
 	TabDumps []*tabulatedfunction.Dump
 }
 
+func configsEqual(a, b *Config) bool {
+	if a == b {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Inputs != b.Inputs ||
+		a.Outputs != b.Outputs ||
+		a.Loss != b.Loss ||
+		a.LossPrecision != b.LossPrecision ||
+		a.Degree != b.Degree ||
+		a.Smooth != b.Smooth ||
+		a.Trapolation != b.Trapolation ||
+		!slices.Equal(a.InputTags, b.InputTags) {
+		return false
+	}
+	return true
+}
+
 // Save saves network into the file specified to be loaded later
 func (n *Neural) Save(path string) error {
 	if existingFile, err := os.Open(path); err == nil {
@@ -162,11 +183,12 @@ func (n *Neural) Save(path string) error {
 		dec := gob.NewDecoder(bufio.NewReader(existingFile))
 		decodeErr := dec.Decode(&existingData)
 		_ = existingFile.Close()
-		if decodeErr == nil && existingData.Config != nil {
+		if decodeErr == nil && existingData.Config != nil && configsEqual(existingData.Config, n.Config) {
 			var currentEpoch uint32
 			if n.Config != nil {
 				currentEpoch = n.Config.Epoch
 			}
+			// If configuration is unchanged and existing file epoch is >= current, skip overwriting
 			if existingData.Config.Epoch >= currentEpoch {
 				return nil
 			}
