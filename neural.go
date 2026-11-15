@@ -10,6 +10,21 @@ import (
 	tabulatedfunction "github.com/Maxime2/tabulated-function"
 )
 
+// DefaultSize is the default size for tabulated functions.
+const DefaultSize = 1000
+
+var defaultSize = DefaultSize
+
+// SetDefaultSize sets the default size for tabulated functions.
+func SetDefaultSize(size int) {
+	defaultSize = size
+}
+
+// SetSize sets the default size for tabulated functions.
+func SetSize(size int) {
+	defaultSize = size
+}
+
 // Smallest number
 const Eps = 1e-16
 
@@ -42,6 +57,8 @@ type Config struct {
 	Smooth bool
 	// TrapolationLinear by default
 	Trapolation tabulatedfunction.Trapolation
+	// Size specifies the size of tabulated functions (default: 1000)
+	Size int
 	// Sum of weights
 	sum_of_weights float64
 }
@@ -57,6 +74,11 @@ type Context struct {
 // NewNeural returns a new neural network
 func NewNeural(c *Config) *Neural {
 	return newNeuralRaw(c, true)
+}
+
+// SetSize sets the size of tabulated functions for this configuration.
+func (c *Config) SetSize(size int) {
+	c.Size = size
 }
 
 func newNeuralRaw(c *Config, initPoints bool) *Neural {
@@ -80,6 +102,10 @@ func newNeuralRaw(c *Config, initPoints bool) *Neural {
 
 	if c.Degree != 1 {
 		log.Fatal("Degree must be 1; or unspecified!")
+	}
+
+	if c.Size <= 0 {
+		c.Size = defaultSize
 	}
 
 	layers := initializeLayersRaw(c, initPoints)

@@ -170,6 +170,7 @@ func configsEqual(a, b *Config) bool {
 		a.Degree != b.Degree ||
 		a.Smooth != b.Smooth ||
 		a.Trapolation != b.Trapolation ||
+		a.Size != b.Size ||
 		!slices.Equal(a.InputTags, b.InputTags) {
 		return false
 	}

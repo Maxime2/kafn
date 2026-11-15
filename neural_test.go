@@ -314,3 +314,33 @@ func Test_Neural_Expand(t *testing.T) {
 		})
 	})
 }
+
+func Test_Config_Size_DefaultAndSetter(t *testing.T) {
+	// Ensure defaultSize is restored after test
+	defer SetDefaultSize(DefaultSize)
+
+	// 1. Default value should be 1000
+	nDefault := NewNeural(&Config{Inputs: 1, Outputs: 1})
+	assert.Equal(t, 1000, nDefault.Config.Size)
+
+	// 2. Custom Size specified on Config
+	nCustom := NewNeural(&Config{Inputs: 1, Outputs: 1, Size: 500})
+	assert.Equal(t, 500, nCustom.Config.Size)
+
+	// 3. Changing the default via SetDefaultSize
+	SetDefaultSize(2000)
+	nNewDefault := NewNeural(&Config{Inputs: 1, Outputs: 1})
+	assert.Equal(t, 2000, nNewDefault.Config.Size)
+
+	// 4. Changing default via SetSize alias
+	SetSize(1500)
+	nAliasDefault := NewNeural(&Config{Inputs: 1, Outputs: 1})
+	assert.Equal(t, 1500, nAliasDefault.Config.Size)
+
+	// 5. Config.SetSize setter
+	cfg := &Config{Inputs: 1, Outputs: 1}
+	cfg.SetSize(800)
+	assert.Equal(t, 800, cfg.Size)
+	nExplicit := NewNeural(cfg)
+	assert.Equal(t, 800, nExplicit.Config.Size)
+}

@@ -25,7 +25,14 @@ type SynapseTabulated struct {
 func initSynapseTabulated(syn *SynapseTabulated, c *Config, up *Neuron, tag string, initPoints bool) {
 	direct := tabulatedfunction.New()
 	direct.SetOrder(1)
+	size := defaultSize
+	if c != nil && c.Size > 0 {
+		size = c.Size
+	}
+	direct.SetSize(size)
+	if c != nil {
 	direct.SetTrapolation(c.Trapolation)
+	}
 	syn.direct = direct
 	syn.In = 0
 	syn.Out = 0
@@ -126,6 +133,10 @@ func (s *SynapseTabulated) DrawPS(path string) {
 
 func (s *SynapseTabulated) Smooth() {
 	s.direct.Smooth()
+}
+
+func (s *SynapseTabulated) SetSize(size int) {
+	s.direct.SetSize(size)
 }
 
 // Dump returns a serializable dump of the underlying tabulated function.
